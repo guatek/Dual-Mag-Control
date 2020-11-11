@@ -16,3 +16,6 @@
 [submodule "lib/Adafruit_ZeroTimer"]
 	path = lib/Adafruit_ZeroTimer
 	url = https://github.com/adafruit/Adafruit_ZeroTimer.git
+[submodule "lib/RTCZero"]
+	path = lib/RTCZero
+	url = https://github.com/arduino-libraries/RTCZero.git
