@@ -19,3 +19,6 @@
 [submodule "lib/RTCZero"]
 	path = lib/RTCZero
 	url = https://github.com/arduino-libraries/RTCZero.git
+[submodule "lib/RTClib"]
+	path = lib/RTClib
+	url = https://github.com/adafruit/RTClib.git
