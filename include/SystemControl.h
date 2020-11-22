@@ -308,7 +308,7 @@ class SystemControl
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "$DM,%s.%03u,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d",
+        sprintf(output, "$DM,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d",
 
             timeString,
             millis() % 1000,
