@@ -42,6 +42,23 @@ void SERCOM1_Handler()
   Serial3.IrqHandler();
 }
 
+// Define GPIOs
+#define GPIO_1_IO AREF
+#define GPIO_2_IO SWIO
+#define GPIO_3_IO SWCLK
+
+// Define Triggers
+#define TRIG_4_0 A1
+#define TRIG_1_0 8
+#define TRIG_0_0 4
+
+// Define Trigger pins
+#define HIGH_MAG_CAM_TRIG GPIO_2_IO
+#define LOW_MAG_CAM_TRIG GPIO_3_IO
+#define HIGH_MAG_STROBE_TRIG TRIG_4_0
+#define LOW_MAG_STROBE_TRIG TRIG_0_0
+#define FLASH_TYPE_PIN TRIG_1_0
+
 #define DEBUGPORT Serial
 #define HWPORT0 Serial0
 #define HWPORT1 Serial1
@@ -49,7 +66,9 @@ void SERCOM1_Handler()
 #define HWPORT3 Serial3
 
 #define UI1 HWPORT0
-#define UI2 HWPORT1
+#define UI2 HWPORT2
+#define JETSONPORT HWPORT1
+#define RBRPORT HWPORT3
 
 
 #endif
