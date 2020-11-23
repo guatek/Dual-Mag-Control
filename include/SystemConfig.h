@@ -124,15 +124,15 @@ class SystemConfig {
         }
 
         template <class T>
-        bool addParam(const char * name, const char * desc, const char * units, T minVal, T maxVal, T defaultVal, bool isFloat = false) {
+        bool addParam(const char * name, const char * desc, const char * units, T minVal, T maxVal, T defaultVal, bool isFloat = false, void (*callback)() = NULL) {
             if (!isFloat && nIntParams < MAX_PARAMS) {
-                intParams[nIntParams] = new ConfigParam <int> (name, desc, units, uid, minVal, maxVal, defaultVal, isFloat);
+                intParams[nIntParams] = new ConfigParam <int> (name, desc, units, uid, minVal, maxVal, defaultVal, isFloat, callback);
                 nIntParams += 1;
                 uid += sizeof(int);
                 return true;
             }
             else if (nFloatParams < MAX_PARAMS) {
-                floatParams[nFloatParams] = new ConfigParam <float> (name, desc, units, nIntParams, minVal, maxVal, defaultVal, isFloat);
+                floatParams[nFloatParams] = new ConfigParam <float> (name, desc, units, nIntParams, minVal, maxVal, defaultVal, isFloat, callback);
                 nFloatParams += 1;
                 uid += sizeof(float);
                 return true;
@@ -207,7 +207,7 @@ class SystemConfig {
                     if (strncmp(intParams[i]->name, name, strlen(name)) == 0) {
                         bool updated = intParams[i]->setValFromString(val, strlen(val));
                         if (updated) {
-                            ui->print("\nUpdated : ");
+                            ui->print("\r\nUpdated : ");
                             intParams[i]->print(ui);
                         }
                         return updated;
@@ -219,7 +219,7 @@ class SystemConfig {
                     if (strncmp(floatParams[i]->name, name, strlen(name)) == 0) {
                         bool updated = floatParams[i]->setValFromString(val, strlen(val));
                         if (updated) {
-                            ui->print("\nUpdated : ");
+                            ui->print("\r\nUpdated : ");
                             floatParams[i]->print(ui);
                         }
                         return updated;

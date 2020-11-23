@@ -44,11 +44,56 @@ class SystemControl
     float lastDepth;
     bool systemOkay;
     bool ds3231Okay;
+    bool cameraOn;
     char cmdBuffer[CMD_BUFFER_SIZE];
     bool rbrData;
     int state;
     unsigned long timestamp;
     unsigned long lastDepthCheck;
+
+    bool confirm(Stream * in, const char * prompt) {
+        unsigned long startTimer = millis();
+        int index = 0;
+        in->println();
+        in->print(prompt);
+
+        while (startTimer <= millis() && millis() - startTimer < (unsigned int)cfg.getInt("CMDTIMEOUT")) {
+
+            // Wait on user input
+            if (in->available()) {
+                // Read the next char and reset timer          
+                char c = in->read();
+                if (c == 'Y' || c == 'y') {
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    int checkCommand(char * input, const char * command, int n) {
+        int maxLength = n;
+        
+        // Coerce to shortest string
+        if (strlen(input) < maxLength)
+            maxLength = strlen(input);
+        if (strlen(command) < maxLength)
+            maxLength = strlen(command);
+
+        for (int i=0; i < maxLength; i++) {
+            if (tolower(input[i]) < tolower(command[i]))
+                return -1;
+            if (tolower(input[i]) > tolower(command[i]))
+                return 1;
+        }
+
+        // string match up to n chars
+        return 0;
+    }
     
     void readInput(Stream *in) {
       
@@ -99,28 +144,43 @@ class SystemControl
                         char * cmd = strtok_r(cmdBuffer,",",&rest);
 
                         // CFG (configuration commands)
-                        if (cmd != NULL && strncmp(cmd,"CFG", 3) == 0) {
+                        if (cmd != NULL && checkCommand(cmd,"CFG", 3) == 0) {
                             cfg.parseConfigCommand(rest, in);
                         }
 
                         // PORTPASS (pass through to other serial ports)
-                        if (cmd != NULL && strncmp(cmd,"PORTPASS", 8) == 0) {
+                        if (cmd != NULL && checkCommand(cmd,"PORTPASS", 8) == 0) {
                             doPortPass(in, rest);
                         }
 
                         // SETTIME (set time from string)
-                        if (cmd != NULL && strncmp(cmd,"SETTIME", 7) == 0) {
+                        if (cmd != NULL && checkCommand(cmd,"SETTIME", 7) == 0) {
                             setTime(rest, in);
                         }
 
                         // WRITECONFIG (save the current config to EEPROM)
-                        if (cmd != NULL && strncmp(cmd,"WRITECONFIG", 11) == 0) {
+                        if (cmd != NULL && checkCommand(cmd,"WRITECONFIG", 11) == 0) {
                             writeConfig();
                         }
 
                         // READCONFIG (read the current config to EEPROM)
-                        if (cmd != NULL && strncmp(cmd,"READCONFIG", 10) == 0) {
+                        if (cmd != NULL && checkCommand(cmd,"READCONFIG", 10) == 0) {
                             readConfig();
+                        }
+
+                        if (cmd != NULL && checkCommand(cmd,"CAMERAON",8) == 0) {
+                            if (confirm(in, "Are you sure you want to power ON camera ? [y/N]: "))
+                                turnOnCamera();
+                        }
+
+                        if (cmd != NULL && checkCommand(cmd,"CAMERAOFF",9) == 0) {
+                            if (confirm(in, "Are you sure you want to power OFF camera ? [y/N]: "))
+                                turnOffCamera();
+                        }
+
+                        if (cmd != NULL && checkCommand(cmd,"SHUTDOWNJETSON",14) == 0) {
+                            if (confirm(in, "Are you sure you want to shutdown jetson ? [y/N]: "))
+                                sendShutdown();
                         }
 
                         // Reset the buffer and print out the prompt
@@ -158,7 +218,9 @@ class SystemControl
     void doPortPass(Stream * in, char * cmd) {
         char * rest;
         char * num = strtok_r(cmd,",",&rest);
-
+        in->print("Passing through to hardware port ");
+        in->println(num);
+        in->println();
         if (num != NULL) {
             char portNum = *num;
             switch (portNum) {
@@ -212,9 +274,6 @@ class SystemControl
         pinMode(CAMERA_POWER, OUTPUT);
         pinMode(STROBE_POWER, OUTPUT);
 
-        digitalWrite(CAMERA_POWER, HIGH);
-        digitalWrite(STROBE_POWER, HIGH);
-
         // Start RTC
         _zerortc.begin();
 
@@ -246,10 +305,16 @@ class SystemControl
 
     }
 
-    bool setupTimers() {
-        configureFlashDurations(cfg.getInt("FRAMERATE"));
-        configTriggers(cfg.getInt("FRAMERATE"));
-        configPolling(cfg.getInt("POLLFREQ"), pollInstruments);
+    bool turnOnCamera() {
+        cameraOn = true;
+        digitalWrite(CAMERA_POWER, HIGH);
+        digitalWrite(STROBE_POWER, HIGH);
+    }
+
+    bool turnOffCamera() {
+        cameraOn = false;
+        digitalWrite(CAMERA_POWER, LOW);
+        digitalWrite(STROBE_POWER, LOW);
     }
 
     bool update() {
@@ -373,7 +438,16 @@ class SystemControl
         }
     }
 
-    void configureFlashDurations(float freq) {
+    void sendShutdown() {
+        if (cameraOn) {
+            JETSONPORT.println("sudo shutdown -h now\n");
+        }
+        else {
+            DEBUGPORT.println("Camera not powered on, not sending shutdown command");
+        }
+    }
+
+    void configureFlashDurations() {
         // Set global delays for ISRs
         trigWidth = cfg.getInt("TRIGWIDTH");
         flashType = cfg.getInt("FLASHTYPE");
@@ -385,6 +459,14 @@ class SystemControl
             lowMagStrobeDuration = cfg.getInt("LOWMAGREDFLASH");
             highMagStrobeDuration = cfg.getInt("HIGHMAGREDFLASH");
         }
+    }
+
+    void setTriggers() {
+        configTriggers(cfg.getInt("FRAMERATE"));
+    }
+
+    void setPolling() {
+        configPolling(cfg.getInt("POLLFREQ"), pollInstruments);
     }
         
 };
