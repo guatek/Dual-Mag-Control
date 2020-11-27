@@ -9,6 +9,7 @@
 #include "DeepSleep.h"
 #include "SPIFlash.h"
 #include "Sensors.h"
+#include "Stats.h"
 #include "SystemConfig.h"
 #include "SystemTrigger.h"
 #include "RBRInstrument.h"
@@ -50,10 +51,10 @@ class SystemControl
     int state;
     unsigned long timestamp;
     unsigned long lastDepthCheck;
+    MovingAverage<float> avgVoltage;
 
     bool confirm(Stream * in, const char * prompt) {
         unsigned long startTimer = millis();
-        int index = 0;
         in->println();
         in->print(prompt);
 
@@ -76,7 +77,7 @@ class SystemControl
     }
 
     int checkCommand(char * input, const char * command, int n) {
-        int maxLength = n;
+        size_t maxLength = n;
         
         // Coerce to shortest string
         if (strlen(input) < maxLength)
@@ -84,7 +85,7 @@ class SystemControl
         if (strlen(command) < maxLength)
             maxLength = strlen(command);
 
-        for (int i=0; i < maxLength; i++) {
+        for (unsigned int i=0; i < maxLength; i++) {
             if (tolower(input[i]) < tolower(command[i]))
                 return -1;
             if (tolower(input[i]) > tolower(command[i]))
@@ -111,7 +112,7 @@ class SystemControl
 
                 unsigned long startTimer = millis();
                 int index = 0;
-                while (startTimer <= millis() && millis() - startTimer < cfg.getInt("CMDTIMEOUT")) {
+                while (startTimer <= millis() && millis() - startTimer < (unsigned int)(cfg.getInt("CMDTIMEOUT"))) {
 
                     // Break if we have exceed the buffer size
                     if (index >= CMD_BUFFER_SIZE)
@@ -274,6 +275,9 @@ class SystemControl
         pinMode(CAMERA_POWER, OUTPUT);
         pinMode(STROBE_POWER, OUTPUT);
 
+        digitalWrite(CAMERA_POWER, LOW);
+        digitalWrite(STROBE_POWER, HIGH);
+
         // Start RTC
         _zerortc.begin();
 
@@ -303,18 +307,24 @@ class SystemControl
         // Start sensors
         _sensors.begin();
 
+        return true;
+
     }
 
     bool turnOnCamera() {
         cameraOn = true;
         digitalWrite(CAMERA_POWER, HIGH);
-        digitalWrite(STROBE_POWER, HIGH);
+        digitalWrite(STROBE_POWER, LOW);
+
+        return true;
     }
 
     bool turnOffCamera() {
         cameraOn = false;
         digitalWrite(CAMERA_POWER, LOW);
-        digitalWrite(STROBE_POWER, LOW);
+        digitalWrite(STROBE_POWER, HIGH);
+
+        return true;
     }
 
     bool update() {
@@ -331,7 +341,9 @@ class SystemControl
 
         uint32_t unixtime; 
 
-        char timeString[] = "YYYY-MM-DD hh:mm:ss";
+        char timeString[64];
+        
+        sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
 
         if (ds3231Okay) {
             DateTime now = _ds3231.now();
@@ -357,7 +369,7 @@ class SystemControl
             _rbr.invalidateData();
 
             // Check state (float up, down ratchet)
-            if (unixtime - lastDepthCheck > cfg.getInt("DEPTHCHECKINTERVAL")) {
+            if (unixtime - lastDepthCheck > (unsigned int)cfg.getInt("DEPTHCHECKINTERVAL")) {
                 float delta_depth = d - lastDepth;
                 if ((state == -1 || state == 0) && delta_depth > ((float)cfg.getInt("DEPTHTHRESHOLD"))/1000) {
                     state = 1; // ascent to descent
@@ -376,7 +388,7 @@ class SystemControl
         sprintf(output, "$DM,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d",
 
             timeString,
-            millis() % 1000,
+            ((unsigned int) millis()) % 1000,
             _sensors.temperature, // In C
             _sensors.pressure / 1000, // in kPa
             _sensors.humidity, // in %
@@ -390,9 +402,9 @@ class SystemControl
         );
 
         // Send output
-        DEBUGPORT.println(output);
-        UI1.println(output);
-        UI2.println(output);
+        printAllPorts(output);
+
+        return true;
     }
 
     void writeConfig() {
@@ -418,15 +430,33 @@ class SystemControl
         }
     }
 
+    void printAllPorts(const char output[]) {
+        UI1.println(output);
+        UI2.println(output);
+        DEBUGPORT.println(output);
+    }
+
     void checkVoltage() {
+
+        // Update moving average of voltage
+        //float latestVoltage = avgVoltage.update(_sensors.voltage[0]);
+        float latestVoltage = _sensors.voltage[0];
+
         // If battery voltage is too low, notify and sleep
-        // TODO: add logic to shutdown Jetson if running
-        if (_sensors.voltage[0] < cfg.getInt("LOWVOLTAGE")) {
+        // If the camera is running at this point, shut it down first
+        if (latestVoltage < cfg.getInt("LOWVOLTAGE")) {
             char output[256];
-            sprintf(output,"Voltage %f below threshold %d, going to sleep in 10 seconds...", _sensors.voltage[0], cfg.getInt("LOWVOLTAGE"));
-            UI1.println(output);
-            UI2.println(output);
-            delay(10000);
+            sprintf(output,"Voltage %f below threshold %d", latestVoltage, cfg.getInt("LOWVOLTAGE"));
+            printAllPorts(output);
+            if (cameraOn) {
+                printAllPorts("Camera is ON! Sending Shutdown and waiting for 30 seconds...");
+                sendShutdown();
+                delay(30000);
+                printAllPorts("Turning OFF camera power");
+                turnOffCamera();
+            }
+            delay(2000);
+            printAllPorts("Going to sleep...");
             _zerortc.setAlarmTime(0, 0, 0);
             if (cfg.getInt("CHECKHOURLY") == 1) {
                 _zerortc.enableAlarm(RTCZero::MATCH_MMSS);
@@ -434,7 +464,10 @@ class SystemControl
             else {
                 _zerortc.enableAlarm(RTCZero::MATCH_SS);
             }
-            _zerortc.standbyMode();
+            if (cfg.getInt("STANDBY") == 1) {
+                DEBUGPORT.println("Would go into stanby here but currently disabled.");
+                //_zerortc.standbyMode();
+            }
         }
     }
 
@@ -452,10 +485,12 @@ class SystemControl
         trigWidth = cfg.getInt("TRIGWIDTH");
         flashType = cfg.getInt("FLASHTYPE");
         if (flashType == 0) {
+            digitalWrite(FLASH_TYPE_PIN,HIGH);
             lowMagStrobeDuration = cfg.getInt("LOWMAGCOLORFLASH");
             highMagStrobeDuration = cfg.getInt("HIGHMAGCOLORFLASH");
         }
         else {
+            digitalWrite(FLASH_TYPE_PIN,LOW);
             lowMagStrobeDuration = cfg.getInt("LOWMAGREDFLASH");
             highMagStrobeDuration = cfg.getInt("HIGHMAGREDFLASH");
         }

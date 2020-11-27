@@ -17,7 +17,7 @@ class MovingAverage {
 
     public:
 
-    MovingAverage(int samples) {
+    MovingAverage(int samples=64) {
         this->samples = samples;
         if (this->samples >= MAX_BUFFER_SIZE) {
             DEBUGPORT.println("Samples exceed max buffer size, setting to max buffer size.");
@@ -34,14 +34,14 @@ class MovingAverage {
             for (int i = 1; i < index; i++) {
                 buffer[i-1] = buffer[i];
             }
-            buffer[samples-1] = newVal;
+            buffer[samples-1] = newSample;
         }
         if (index == 0) {
             return newSample;
         }
         else {
             float avg = 0.0;
-            for (int i = 0; i < index-1; i++) {
+            for (int i = 0; i < index; i++) {
                 avg += buffer[i];
             }
             avg /= index;

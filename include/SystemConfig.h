@@ -42,7 +42,7 @@ class ConfigParam {
             this->callback = callback;
         }
 
-        int writeToFlash() {
+        void writeToFlash() {
             _flash.writeBytes(uid, (void*)&val, (uint16_t)sizeof(T));
             DEBUGPORT.print("Write value [@");
             DEBUGPORT.print(uid);
@@ -50,7 +50,7 @@ class ConfigParam {
             DEBUGPORT.println(val);
         }
 
-        int readFromFlash() {
+        void readFromFlash() {
             T newVal;
             _flash.readBytes(uid, (void*)&newVal, (uint16_t)sizeof(T));
             setVal(newVal);
@@ -79,15 +79,16 @@ class ConfigParam {
             T newVal;
             int result;
             if (isFloat) {
-                result = sscanf(input, "%f", &newVal);
+                result = sscanf(input, "%f", (float*)&newVal);
             }
             else {
-                result = sscanf(input, "%d", &newVal);
+                result = sscanf(input, "%d", (int*)&newVal);
             }
             if (result != EOF && newVal >= minVal && newVal <= maxVal) {
                 val = newVal;
                 // Call function if provided
                 if (callback != NULL) {
+                    DEBUGPORT.println("\ncallback fired");
                     callback();
                 }
                 return true;

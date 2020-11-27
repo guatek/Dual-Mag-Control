@@ -51,7 +51,7 @@ class RBRInstrument {
         return newData;
     }
 
-    bool readData(Stream * port) {
+    void readData(Stream * port) {
         
         if (port != NULL && port->available()) {
 
@@ -92,6 +92,7 @@ class RBRInstrument {
     bool syncClock(RTCZero * rtc) {
         if (newData) {
         }
+        return true;
     }
 
     bool haveNewData() {

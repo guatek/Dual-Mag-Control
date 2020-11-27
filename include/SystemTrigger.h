@@ -31,7 +31,7 @@ void TC5_Handler(){
 void HighMagCallback();
 void LowMagCallback();
 
-void configTimer(float freq, uint8_t * divider, uint16_t * compare, tc_clock_prescaler * prescaler) {
+void configTimer(float freq, uint16_t * divider, uint16_t * compare, tc_clock_prescaler * prescaler) {
        // Set up the flexible divider/compare
     //uint8_t divider  = 1;
     //uint16_t compare = 0;
@@ -70,11 +70,11 @@ void configTimer(float freq, uint8_t * divider, uint16_t * compare, tc_clock_pre
         *prescaler = TC_CLOCK_PRESCALER_DIV1024;
         *compare = (48000000/1024)/freq;
     } else {
-        Serial.println("Invalid frequency");
+        DEBUGPORT.println("Invalid frequency");
     }
-    Serial.print("Divider:"); Serial.println(*divider);
-    Serial.print("Compare:"); Serial.println(*compare);
-    Serial.print("Final freq:"); Serial.println((int)(48000000/(*compare)));
+    DEBUGPORT.print("Divider:"); Serial.println(*divider);
+    DEBUGPORT.print("Compare:"); Serial.println(*compare);
+    DEBUGPORT.print("Final freq:"); Serial.println((int)(48000000/(*compare)));
 }
 
 void configTriggers(float freq) {
@@ -90,7 +90,7 @@ void configTriggers(float freq) {
     Serial.print("Desired freq (Hz):");
     Serial.println(freq);
 
-    uint8_t divider  = 1;
+    uint16_t divider  = 1;
     uint16_t compare = 0;
     tc_clock_prescaler prescaler = TC_CLOCK_PRESCALER_DIV1;
 
@@ -123,7 +123,7 @@ void configTriggers(float freq) {
 
 void configPolling(float freq, void (*callback)()) {
 
-    uint8_t divider  = 1;
+    uint16_t divider  = 1;
     uint16_t compare = 0;
     tc_clock_prescaler prescaler = TC_CLOCK_PRESCALER_DIV1;
 

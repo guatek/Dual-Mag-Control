@@ -92,6 +92,7 @@ void setup() {
     sys.cfg.addParam("PROFILEMODE","0 = upcast only, 1 = always on", "", 0, 1, 0);
 
     sys.cfg.addParam("LOWVOLTAGE", "Voltage in mV where we shut down system", "mV", 10000, 14000, 11500);
+    sys.cfg.addParam("STANDBY", "If voltage is low go into standby mode", "", 0, 1, 0);
     sys.cfg.addParam("CHECKHOURLY", "0 = check every minute, 1 = check every hour", "", 0, 1, 0);
 
     // Start the remaining serial ports

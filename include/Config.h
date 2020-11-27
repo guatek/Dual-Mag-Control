@@ -55,8 +55,8 @@ void SERCOM1_Handler()
 // Define Trigger pins
 #define HIGH_MAG_CAM_TRIG GPIO_2_IO
 #define LOW_MAG_CAM_TRIG GPIO_3_IO
-#define HIGH_MAG_STROBE_TRIG TRIG_4_0
-#define LOW_MAG_STROBE_TRIG TRIG_0_0
+#define HIGH_MAG_STROBE_TRIG TRIG_0_0
+#define LOW_MAG_STROBE_TRIG TRIG_4_0
 #define FLASH_TYPE_PIN TRIG_1_0
 
 #define DEBUGPORT Serial
