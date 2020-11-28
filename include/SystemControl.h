@@ -39,7 +39,10 @@ WDTZero _watchdog;
 RBRInstrument _rbr;
 
 // Static polling function for instruments
+bool pollingEnable = false;
 void pollInstruments() {
+    if (!pollingEnable)
+        return;
     _rbr.readData(&RBRPORT);
 }
 
@@ -398,24 +401,27 @@ class SystemControl
                 float delta_depth = d - lastDepth;
                 if ((state == -1 || state == 0) && delta_depth > ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
                     state = 1; // ascent to descent
-                    // If profile mode is 0 and camera is on, shut it down
-                    if (cfg.getInt(PROFILEMODE) == 0) {
-                        if (cameraOn) {
-                            shutdownCamera();
-                        }
-                    }
                 }
                 if ((state == 1 || state == 0)  && delta_depth < ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
                     state = -1; // descent to ascent
-                    // If profile mode is 0 and camera is off, turn it on
-                    if (cfg.getInt(PROFILEMODE) == 0) {
-                        if (!cameraOn) {
-                            turnOnCamera();
-                        }
-                    }
                 }
                 lastDepthCheck = unixtime;
                 lastDepth = d;
+            }
+
+            // If profile mode is 0 and camera is on, shut it down
+            if (state == 1 && cfg.getInt(PROFILEMODE) == 0) {
+                if (cameraOn && !pendingPowerOff) {
+                    sendShutdown();
+                }
+            }
+
+            // If profile mode is 0 and camera is off, turn it on
+            if (state == -1 && cfg.getInt(PROFILEMODE) == 0) {
+                
+                if (!cameraOn) {
+                    turnOnCamera();
+                }
             }
         }
 
@@ -466,11 +472,14 @@ class SystemControl
             readInput(&DEBUGPORT);
         }
         if (UI1.available() > 0) {
+            _rbr.disableEcho();
             readInput(&UI1);
         }
         if (UI2.available() > 0) {
+            _rbr.disableEcho();
             readInput(&UI2);
         }
+        _rbr.enableEcho();
     }
 
     void printAllPorts(const char output[]) {
@@ -482,7 +491,7 @@ class SystemControl
     void checkCameraPower() {
 
         // Check for power off flag
-        if (pendingPowerOff && (_sensors.power[0] < 1.0 || _zerortc.getEpoch() - pendingPowerOffTimer > (unsigned int)cfg.getInt(MAXSHUTDOWNTIME))) {
+        if (pendingPowerOff && ((_sensors.power[0] < 1000) || (_zerortc.getEpoch() - pendingPowerOffTimer > (unsigned int)cfg.getInt(MAXSHUTDOWNTIME)))) {
             turnOffCamera();
             pendingPowerOff = false;
             return;
@@ -625,6 +634,7 @@ class SystemControl
     }
 
     void setPolling() {
+        pollingEnable = true;
         configPolling(cfg.getInt(POLLFREQ), pollInstruments);
     }
         

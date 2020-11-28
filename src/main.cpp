@@ -91,11 +91,9 @@ void setup() {
     sys.cfg.addParam(HIGHMAGREDFLASH, "Width of the high-mag far red flash in us", "us", 1, 100000, 10, false, setFlashes);
     sys.cfg.addParam(FLASHTYPE, "0 = white strobes, 1 = far red strobes","", 0, 1, 0, false, setFlashes);
     sys.cfg.addParam(PROFILEMODE,"0 = upcast only, 1 = always on", "", 0, 1, 0);
-
     sys.cfg.addParam(LOWVOLTAGE, "Voltage in mV where we shut down system", "mV", 10000, 14000, 11500);
     sys.cfg.addParam(STANDBY, "If voltage is low go into standby mode", "", 0, 1, 0);
     sys.cfg.addParam(CHECKHOURLY, "0 = check every minute, 1 = check every hour", "", 0, 1, 0);
-
     sys.cfg.addParam(STARTUPTIME, "Time in seconds before performing any system checks", "s", 0, 60, 10);
     sys.cfg.addParam(WATCHDOG, "0 = no watchdog, 1 = hardware watchdog timer with 8 sec timeout","", 0, 1, 0);
     sys.cfg.addParam(CAMGUARD,"Time guard between power ON/OFF events in seconds", "s", 10, 120, 30);

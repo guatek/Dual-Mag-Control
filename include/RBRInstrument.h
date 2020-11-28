@@ -14,6 +14,7 @@ class RBRInstrument {
     float temp;
     float cond;
     bool newData;
+    bool echoData;
     char buffer[MAX_BUFFER_LENGTH];
     int bufferIndex;
 
@@ -22,6 +23,7 @@ class RBRInstrument {
 
     RBRInstrument() {
         newData = false;
+        echoData = true;
         bufferIndex = 0;
     }
 
@@ -63,8 +65,10 @@ class RBRInstrument {
                     if (c == '\n' || c == '\r') {
                         if (bufferIndex > 0) {
                             buffer[bufferIndex++] = '\0';
-                            UI1.println(buffer);
-                            UI2.println(buffer);
+                            if (echoData) {
+                                UI1.println(buffer);
+                                UI2.println(buffer);
+                            }
                             parseData(buffer);
                             bufferIndex = 0;
                         }
@@ -101,6 +105,14 @@ class RBRInstrument {
 
     void invalidateData() {
         newData = false;
+    }
+
+    void enableEcho() {
+        echoData = true;
+    }
+
+    void disableEcho() { 
+        echoData = false;
     }
 };
 
