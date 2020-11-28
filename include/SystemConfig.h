@@ -60,6 +60,71 @@ class ConfigParam {
             DEBUGPORT.println(val);
         }
 
+        bool readFromCLI(Stream * in, T * val, char exitChar, unsigned int cmdTimeout) {
+            unsigned long startTimer = millis();
+            in->println();
+            in->print("Enter a value for ");
+            in->print(name);
+            in->print(" [");
+            in->print(minVal);
+            in->print(",");
+            in->print(maxVal);
+            in->print("]: ");
+
+            int bufferLength = 64;
+            char buffer[bufferLength];
+            int bufferIndex = 0;
+
+            while (startTimer <= millis() && millis() - startTimer < cmdTimeout) {
+
+                // Wait on user input
+                if (in->available()) {
+                    // Read the next char and reset timer          
+                    char c = in->read();
+                    if (c == exitChar) {
+                        return false;
+                    }
+                    else if (c == '\n') {
+                        if (bufferIndex < bufferLength) {
+                            buffer[bufferIndex] = '\0';
+                            int result = 0;
+                            T newVal;
+                            if (isFloat) {
+                                result = sscanf(buffer, "%f", (float*)&newVal);
+                            }
+                            else {
+                                result = sscanf(buffer, "%d", (int*)&newVal);
+                            }
+                            if (result == 1 && (minVal <= newVal && newVal <= maxVal)) {
+                                *val = newVal;
+                                return true;
+                            }
+                            else {
+                                in->println("Invalid entry.");
+                                bufferIndex = 0;
+                            }
+                        }
+                    }
+                    else {
+                        if (bufferIndex < bufferLength) {
+                            buffer[bufferIndex++] = c;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        bool checkVal(T newVal) {
+            if (newVal >= minVal && newVal <= maxVal) { 
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
         bool setVal(T newVal) {
             if (newVal >= minVal && newVal <= maxVal) {
                 val = newVal;
@@ -84,7 +149,7 @@ class ConfigParam {
             else {
                 result = sscanf(input, "%d", (int*)&newVal);
             }
-            if (result != EOF && newVal >= minVal && newVal <= maxVal) {
+            if (result == 1 && newVal >= minVal && newVal <= maxVal) {
                 val = newVal;
                 // Call function if provided
                 if (callback != NULL) {
@@ -101,7 +166,11 @@ class ConfigParam {
         void print(Stream * ui) {
             ui->print(name);
             ui->print(" [ ");
+            ui->print(minVal);
+            ui->print(",");
             ui->print(val);
+            ui->print(",");
+            ui->print(maxVal);
             ui->print(" ] : ");
             ui->println(desc);
         }
@@ -189,6 +258,15 @@ class SystemConfig {
             }
         }
 
+        bool readIntFromUI(const char * name, Stream * in, int * val, char exitChar, int cmdTimeout) {
+            // Check int params
+            for (int i = 0; i < nIntParams; i++) {
+                if (strncmp(intParams[i]->name, name, strlen(name)) == 0) {
+                    return intParams[i]->readFromCLI(in, val, exitChar, cmdTimeout);
+                }
+            }
+        }
+
         bool parseConfigCommand(char * cmd, Stream * ui) {
             if (cmd == NULL) {
                 printConfig(ui);
@@ -211,6 +289,9 @@ class SystemConfig {
                             ui->print("\r\nUpdated : ");
                             intParams[i]->print(ui);
                         }
+                        else {
+                            ui->println("Invalid entry.");
+                        }
                         return updated;
                     }
                 }
@@ -222,6 +303,9 @@ class SystemConfig {
                         if (updated) {
                             ui->print("\r\nUpdated : ");
                             floatParams[i]->print(ui);
+                        }
+                        else {
+                            ui->println("Invalid entry.");
                         }
                         return updated;
                     }

@@ -35,4 +35,29 @@ void portpass(Stream * in, Stream * out, bool localecho = false) {
     }
 }
 
+bool confirm(Stream * in, const char * prompt, unsigned int cmdTimeout) {
+    unsigned long startTimer = millis();
+    in->println();
+    in->print(prompt);
+
+    while (startTimer <= millis() && millis() - startTimer < cmdTimeout) {
+
+        // Wait on user input
+        if (in->available()) {
+            // Read the next char and reset timer          
+            char c = in->read();
+            if (c == 'Y' || c == 'y') {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+
 #endif
