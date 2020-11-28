@@ -22,3 +22,6 @@
 [submodule "lib/RTClib"]
 	path = lib/RTClib
 	url = https://github.com/adafruit/RTClib.git
+[submodule "lib/WDTZero"]
+	path = lib/WDTZero
+	url = https://github.com/javos65/WDTZero.git
