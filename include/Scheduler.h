@@ -15,10 +15,10 @@
 class TimeEvent {
     public:
     int uid, hour, min, sec, duration;
+    int enabled;
     int flashType, lowMag, highMag, frameRate;
     uint32_t startTime;
     bool running, completed;
-    CameraConfig * camCfg;
 
     TimeEvent(int uid, int hours, int min, int sec, int duration, int flashType, int lowMag, int highMag, int frameRate) {
         this->uid = uid;
@@ -30,6 +30,7 @@ class TimeEvent {
         this->lowMag = lowMag;
         this->highMag = highMag;
         this->frameRate = frameRate;
+        enabled = 1;
         running = false;
         completed = false;
         startTime = 0;
@@ -38,12 +39,13 @@ class TimeEvent {
     int sizeOnFlash() {
         int size = 0;
         size += sizeof(hour) + sizeof(min) + sizeof(sec) + sizeof(duration);
-        size += sizeof(flashType) + sizeof(minVal) + sizeof(maxVal) + sizeof(duration);
+        size += sizeof(flashType) + sizeof(lowMag) + sizeof(highMag) + sizeof(frameRate);
         return size;
     }
 
     void writeToFlash(SPIFlash * _f) {
         if (_f != NULL) {
+            // erase block first so we can write to it
             int add = uid;
             _f->writeBytes(add, (void*)&hour, (uint16_t)sizeof(hour));
             add += sizeof(hour);
@@ -61,6 +63,8 @@ class TimeEvent {
             add += sizeof(highMag);
             _f->writeBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
             add += sizeof(frameRate);
+            _f->writeBytes(add, (void*)&enabled, (uint16_t)sizeof(enabled));
+            add += sizeof(enabled);
         }
     }
 
@@ -83,6 +87,8 @@ class TimeEvent {
             add += sizeof(highMag);
             _f->readBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
             add += sizeof(frameRate);
+            _f->writeBytes(add, (void*)&enabled, (uint16_t)sizeof(enabled));
+            add += sizeof(enabled);
         }
     }
 
@@ -98,97 +104,64 @@ class TimeEvent {
         }
     }
 
-    bool checkEnd(RTCZero * rtc) {
-        if (running && (rtc->getEpoch() - startTime)/60 > duration) {
-            running = false;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-};
-
-class DepthEvent {
-    public:
-    int uid;
-    float minDepth, maxDepth;
-    bool running;
-    int flashType, lowMag, highMag, frameRate;
-
-    DepthEvent(int uid, float minDepth, float maxDepth, CameraConfig * camCfg) {
-        this->uid = uid;
-        this->minDepth = minDepth;
-        this->maxDepth = maxDepth;
-        this->flashType = flashType;
-        this->lowMag = lowMag;
-        this->highMag = highMag;
-        this->frameRate = frameRate;
-        running = false;
-    }
-
-    int sizeOnFlash() {
-        int size = 0;
-        size += sizeof(minDepth) + sizeof(maxDepth) + sizeof(flashType) + sizeof(minVal) + sizeof(maxVal) + sizeof(duration);
-        return size;
-    }
-
-    void writeToFlash(SPIFlash * _f) {
-        if (_f != NULL) {
-            int add = uid;
-            _f->writeBytes(add, (void*)&minDepth, (uint16_t)sizeof(minDepth));
-            add += sizeof(minDepth);
-            _f->writeBytes(add, (void*)&maxDepth, (uint16_t)sizeof(maxDepth));
-            add += sizeof(maxDepth);
-            _f->writeBytes(add, (void*)&flashType, (uint16_t)sizeof(flashType));
-            add += sizeof(flashType);
-            _f->writeBytes(add, (void*)&lowMag, (uint16_t)sizeof(lowMag));
-            add += sizeof(lowMag);
-            _f->writeBytes(add, (void*)&highMag, (uint16_t)sizeof(highMag));
-            add += sizeof(highMag);
-            _f->writeBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
-            add += sizeof(frameRate);
-        }
-        }
-    }
-
-    void readFromFlash(SPIFlash * _f) {
-        if (_f != NULL) {
-            int add = uid;
-            _f->readBytes(add, (void*)&minDepth, (uint16_t)sizeof(minDepth));
-            add += sizeof(minDepth);
-            _f->readBytes(add, (void*)&maxDepth, (uint16_t)sizeof(maxDepth));
-            add += sizeof(maxDepth);
-            _f->readBytes(add, (void*)&flashType, (uint16_t)sizeof(flashType));
-            add += sizeof(flashType);
-            _f->readBytes(add, (void*)&lowMag, (uint16_t)sizeof(lowMag));
-            add += sizeof(lowMag);
-            _f->readBytes(add, (void*)&highMag, (uint16_t)sizeof(highMag));
-            add += sizeof(highMag);
-            _f->readBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
-            add += sizeof(frameRate);
-        }
-    }
-
-    bool checkStart(float depth) {
-        if (!running && minDepth < depth && depth < maxDepth) {
-            running = true;
-            return true;
-        }
+    void printEvent(Stream * ui) {
+        
+        
+        ui->print("\nTime Event [");
+        ui->print(uid);
+        ui->println("]:");
+        ui->print("Start Hour: ");
+        ui->println(hour);
+        ui->print("Start Minute: ");
+        ui->println(min);
+        ui->print("Start Second: ");
+        ui->println(sec);
+        ui->print("Duration: ");
+        ui->print(duration);
+        ui->println(" minutes");
+        ui->print("Flash Type: ");
+        if (flashType)
+            ui->println("Far Red");
         else
-        {
-            return false;
-        }
+            ui->println("White");
+        ui->print("Low Mag Duration: ");
+        ui->print(lowMag);
+        ui->println(" us");
+        ui->print("high Mag Duration: ");
+        ui->print(highMag);
+        ui->println(" us");
+        ui->print("Frame Rate: ");
+        ui->print(frameRate);
+        ui->println(" Hz");
+        ui->print("Enabled?: ");
+        if (enabled == 1)
+            ui->println("ENABLED");
+        else
+            ui->println("DISABLED");
+
     }
 
-    bool checkEnd(float depth) {
-        if (running && minDepth < depth && depth < maxDepth) {
+    bool checkEnd(RTCZero * rtc) {
+        if (running && (rtc->getEpoch() - startTime)/60 > (unsigned long)duration) {
             running = false;
             return true;
         }
         else {
             return false;
         }
+    }
+
+    void setEnabled(bool e) {
+        if (e) {
+            enabled = 1;
+        }
+        else {
+            enabled = 0;
+        }
+    }
+
+    bool isEnabled() {
+        return enabled == 1;
     }
 };
 
@@ -196,121 +169,154 @@ class Scheduler {
     private:
     
     TimeEvent * timeEvents[MAX_TIME_EVENTS];
-    bool enabledTimeEvents[MAX_TIME_EVENTS];
-
-    DepthEvent * depthEvents[MAX_TIME_EVENTS];
-    bool enabledDepthEvents[MAX_TIME_EVENTS];
-    
     int nTimeEvents;
-    int nDepthEvents;
-    int mode; // 0 => off, 1 => check time events, 2 => check depth events, 3 => check time OR depth, 4 => check time AND depth
-    int uid; // the base uid for the scheduler
-    SPIFlash * _flash;
+    int baseUid, uid; // the base uid for the scheduler
+    SPIFlash * _f;
 
     public:
 
-    Scheduler(int uid, int mode, SPIFlash * _flash) {
-        this->uid = uid;
+    Scheduler(int uid, SPIFlash * _f) {
+        this->baseUid = uid;
+        this->uid = uid + sizeof(this->baseUid);
         nTimeEvents = 0;
-        nDepthEvents = 0;
-        this->mode = mode;
-        this->_flash = _flash;
+        this->_f = _f;
 
         // If _flash is not NULL, read the number of time and depth events
         // from flash and create as needed
-        if (_flash != NULL) {
-            _flash->readBytes(uid, (void*)&nTimeEvents, sizeof(nTimeEvents));
+        if (this->_f != NULL) {
+            this->_f->readBytes(baseUid, (void*)&nTimeEvents, sizeof(nTimeEvents));
+            DEBUGPORT.print("Read scheduler value: ");
+            DEBUGPORT.println(nTimeEvents);
             if (nTimeEvents < 0 || nTimeEvents > MAX_TIME_EVENTS) {
                 nTimeEvents = 0;
                 DEBUGPORT.print("Scheduler: Error reading number of events, clearing");
             }
-            _flash->readBytes(uid, (void*)&nDepthEvents, sizeof(nDepthEvents));
-            if (nDepthEvents < 0 || nDepthEvents > MAX_TIME_EVENTS) {
-                nDepthEvents = 0;
-                DEBUGPORT.print("Scheduler: Error reading number of events, clearing");
-            }
         }
 
         // Read in saved time events
-        int uidOffset = uid;
         if (nTimeEvents > 0) {
-            for (int i = 0; i <= nTimeEvents; i++) {
-                timeEvents[i] = new TimeEvent(uidOffset, 0, 0, 0, 0); // dummy event to be filled from flash
-                timeEvents[i]->readFromFlash(_flash);
-                uidOffset += timeEvents[i]->sizeOnFlash();
-            } 
-        }
-        // Read in saved depth events
-        if (nDepthEvents > 0) {
-            for (int i = 0; i <= nDepthEvents; i++) {
-                depthEvents[i] = new DepthEvent(uidOffset, 0.0, 0.0); // dummy event to be filled from flash
-                depthEvents[i]->readFromFlash(_flash);
-                uidOffset += depthEvents[i]->sizeOnFlash();
+            for (int i = 0; i < nTimeEvents; i++) {
+                timeEvents[i] = new TimeEvent(uid, 0, 0, 0, 0, 0, 0, 0, 0); // dummy event to be filled from flash
+                timeEvents[i]->readFromFlash(_f);
+                uid += timeEvents[i]->sizeOnFlash();
+                timeEvents[i]->printEvent(&DEBUGPORT);
             } 
         }
 
+    }
 
+    bool timeEventUI(Stream * ui, SystemConfig * cfg, int cmdTimeout) {
+        int flashType, lowMagDuration, highMagDuration, frameRate; 
+        bool result;
+        char exitCode = 27;
+        ui->println("Create New Time Event:");
+        if (confirm(ui, "Use custom camera config? [y,N]: ", cmdTimeout)) {
+            
+            
+            // Flash Type
+            result = cfg->readIntFromUI(ui, FLASHTYPE, &flashType, exitCode, cmdTimeout);
+            if (!result)
+                return false;
+
+            // Flash Duration
+            if (flashType == 0) {
+                // Color
+                result = cfg->readIntFromUI(ui, LOWMAGCOLORFLASH, &lowMagDuration, exitCode, cmdTimeout);
+                if (!result) 
+                    return false;
+                result = cfg->readIntFromUI(ui, HIGHMAGCOLORFLASH, &highMagDuration, exitCode, cmdTimeout);
+                if (!result) 
+                    return false;
+            }
+            else {
+                // Far Red
+                result = cfg->readIntFromUI(ui, LOWMAGREDFLASH, &lowMagDuration, exitCode, cmdTimeout);
+                if (!result) 
+                    return false;
+                result = cfg->readIntFromUI(ui, HIGHMAGREDFLASH, &highMagDuration, exitCode, cmdTimeout);
+                if (!result) 
+                    return false;
+            }
+            
+            // Frame rate
+            result = cfg->readIntFromUI(ui, FRAMERATE, &frameRate, exitCode, cmdTimeout);
+            if (!result)
+                return false;
+
+        }
+        else {
+            flashType = cfg->getInt(FLASHTYPE);
+            if (flashType == 0) {
+                lowMagDuration = cfg->getInt(LOWMAGCOLORFLASH);
+                highMagDuration = cfg->getInt(HIGHMAGCOLORFLASH);
+            }
+            else {
+                lowMagDuration = cfg->getInt(LOWMAGREDFLASH);
+                highMagDuration = cfg->getInt(HIGHMAGREDFLASH);
+            }
+        }
+
+        int hour, minute, second, duration;
+
+        // Setup dummy params to get hours, min, sec
+        ConfigParam <int> p_hour("STARTHOUR", "The hour to start the event", "hours", 0, 0, 23, 0, false);
+        result = p_hour.readFromCLI(ui,&hour, 27, cmdTimeout);
+        if (!result)
+            return false;
+
+        ConfigParam <int> p_min("STARTMIN", "The minute to start the event", "min", 0, 0, 59, 0, false);
+        result = p_min.readFromCLI(ui,&minute, 27, cmdTimeout);
+        if (!result)
+            return false;
+
+        ConfigParam <int> p_sec("STARTSEC", "The second to start the event", "seconds", 0, 0, 59, 0, false);
+        result = p_sec.readFromCLI(ui,&second, 27, cmdTimeout);
+        if (!result)
+            return false;
+
+        ConfigParam <int> p_dur("DURATION", "The duration of the event in minutes", "minutes", 0, 5, 1440, 5, false);
+        result = p_dur.readFromCLI(ui,&duration, 27, cmdTimeout);
+        if (!result)
+            return false;
+
+        // If we got here we have a valid set of event params so we should create one.
+        ui->println("Creating Event:");
+        addTimeEvent(ui, hour, minute, second, duration, flashType, lowMagDuration, highMagDuration, frameRate);
+        
+        return true;
+
+    }
+
+    bool addTimeEvent(Stream * ui, int hour, int min, int sec, int duration, int flashType, int lowMag, int highMag, int frameRate) {
+        if (nTimeEvents < MAX_TIME_EVENTS) {
+            timeEvents[nTimeEvents] = new TimeEvent(uid, hour, min, sec, duration, flashType, lowMag, highMag, frameRate);
+            timeEvents[nTimeEvents]->printEvent(ui);
+            uid += timeEvents[nTimeEvents]->sizeOnFlash();
+            nTimeEvents += 1;
+
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     void writeToFlash() {
         // Read in saved time events
-        int uidOffset = uid;
-        if (nTimeEvents > 0) {
-            for (int i = 0; i <= nTimeEvents; i++) {
-                timeEvents[i]->writeToFlash(_flash);
-            } 
-        }
-        // Read in saved depth events
-        if (nDepthEvents > 0) {
-            for (int i = 0; i <= nDepthEvents; i++) {
-                depthEvents[i]->writeToFlash(_flash);
-
-            } 
-        }
-    }
-
-    bool timeEventUI(Stream * ui, SystemConfig * cfg, cmdTimeout) {
-        ui->println("Create Time Event:");
-        if (confirm(ui, "Use custom camera config? [y,N]: ", cmdTimeout)) {
-            int flashType, lowMagDuration, highMagDuration, frameRate;
-            int result = cfg->readIntFromUI(ui, FLASHTYPE, &flashType, 27, cmdTimeout);
-            if (!result)
-                return false;
-            if (flashType == 0) {
-                int result = cfg->readIntFromUI(ui, LOWMAG&lowMagDuration, 27, cmdTimeout);
-                if (!result) 
-                return false;
-            
-
-        }
-
-
-    }
-
-    bool addTimeEvent(int uid, int hour, int min, int sec, int duration) {
-        if (nTimeEvents < MAX_TIME_EVENTS) {
-            timeEvents[nTimeEvents] = new TimeEvent(uid, hour, min, sec, duration);
-            enabledTimeEvents[nTimeEvents++] = true;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    bool addDepthEvent(int uid, float minDepth, float maxDepth) {
-        if (nDepthEvents < MAX_TIME_EVENTS) {
-            depthEvents[nDepthEvents] = new DepthEvent(uid, minDepth, maxDepth);
-            enabledDepthEvents[nDepthEvents++] = true;
-        }
-        else {
-            return false;
-        }
+        // Write the number of events on flash
+        _f->writeBytes(baseUid, (void*)&nTimeEvents, sizeof(nTimeEvents));
+        for (int i = 0; i < nTimeEvents; i++) {
+            DEBUGPORT.print("writing time event: ");
+            DEBUGPORT.print(i);
+            DEBUGPORT.println(" to flash...");
+            timeEvents[i]->writeToFlash(_f);
+        } 
     }
 
     bool setTimeEvent(int index, bool enabled) {
         if (index >= 0 && index < nTimeEvents) {
-            enabledTimeEvents[index] = enabled;
+            timeEvents[index]->setEnabled(enabled);
+            timeEvents[index]->writeToFlash(_f);
             return true;
         }
         else {
@@ -318,23 +324,14 @@ class Scheduler {
         }
     }
 
-    bool setDepthEvent(int index, bool enabled) {
-        if (index >= 0 && index < nDepthEvents) {
-            enabledDepthEvents[index] = enabled;
-            return true;
-        }
-        else {
-            return false;
-        }
+    void printEvents(Stream * ui) {
+        for (int i = 0; i < nTimeEvents; i++) {
+            timeEvents[i]->printEvent(ui);
+        } 
     }
 
     int checkEvents() {
-        switch (mode) {
-            case 0:
-                return -1;
-            case 1:
-                
-        }
+        return 0;
     }
     
 };

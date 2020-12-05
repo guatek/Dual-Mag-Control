@@ -11,13 +11,15 @@
 #include "SPIFlash.h"
 #include "Sensors.h"
 #include "Stats.h"
+#include "Scheduler.h"
 #include "SystemConfig.h"
 #include "SystemTrigger.h"
 #include "RBRInstrument.h"
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "DM > "
+#define PROMPT "DMCTRL > "
+#define LOG_PROMPT "$DMCTRL"
 #define CMD_BUFFER_SIZE 128
 
 #define STROBE_POWER 7
@@ -40,6 +42,7 @@ RBRInstrument _rbr;
 
 // Static polling function for instruments
 bool pollingEnable = false;
+bool echoRBR = false;
 void pollInstruments() {
     if (!pollingEnable)
         return;
@@ -50,10 +53,12 @@ class SystemControl
 {
     private:
     float lastDepth;
+    float currentDepth;
     bool systemOkay;
     bool ds3231Okay;
     bool cameraOn;
     bool pendingPowerOff;
+    bool pendingPowerOn;
     bool lowVoltage;
     bool badEnv;
     char cmdBuffer[CMD_BUFFER_SIZE];
@@ -65,31 +70,14 @@ class SystemControl
     unsigned long lastPowerOnTime;
     unsigned long lastPowerOffTime;
     unsigned long pendingPowerOffTimer;
+    unsigned long pendingPowerOnTimer;
     unsigned long envTimer;
     unsigned long voltageTimer;
     MovingAverage<float> avgVoltage;
     MovingAverage<float> avgTemp;
     MovingAverage<float> avgHum;
 
-    int checkCommand(char * input, const char * command, int n) {
-        size_t maxLength = n;
-        
-        // Coerce to shortest string
-        if (strlen(input) < maxLength)
-            maxLength = strlen(input);
-        if (strlen(command) < maxLength)
-            maxLength = strlen(command);
-
-        for (unsigned int i=0; i < maxLength; i++) {
-            if (tolower(input[i]) < tolower(command[i]))
-                return -1;
-            if (tolower(input[i]) > tolower(command[i]))
-                return 1;
-        }
-
-        // string match up to n chars
-        return 0;
-    }
+    Scheduler * sch;
     
     void readInput(Stream *in) {
       
@@ -140,43 +128,51 @@ class SystemControl
                         char * cmd = strtok_r(cmdBuffer,",",&rest);
 
                         // CFG (configuration commands)
-                        if (cmd != NULL && checkCommand(cmd,CFG, 3) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,CFG, 3) == 0) {
                             cfg.parseConfigCommand(rest, in);
                         }
 
                         // PORTPASS (pass through to other serial ports)
-                        if (cmd != NULL && checkCommand(cmd,PORTPASS, 8) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,PORTPASS, 8) == 0) {
                             doPortPass(in, rest);
                         }
 
                         // SETTIME (set time from string)
-                        if (cmd != NULL && checkCommand(cmd,SETTIME, 7) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,SETTIME, 7) == 0) {
                             setTime(rest, in);
                         }
 
                         // WRITECONFIG (save the current config to EEPROM)
-                        if (cmd != NULL && checkCommand(cmd,WRITECONFIG, 11) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,WRITECONFIG, 11) == 0) {
                             writeConfig();
                         }
 
                         // READCONFIG (read the current config to EEPROM)
-                        if (cmd != NULL && checkCommand(cmd,READCONFIG, 10) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,READCONFIG, 10) == 0) {
                             readConfig();
                         }
 
-                        if (cmd != NULL && checkCommand(cmd,CAMERAON,8) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,CAMERAON,8) == 0) {
                             if (confirm(in, "Are you sure you want to power ON camera ? [y/N]: ", cfg.getInt(CMDTIMEOUT)))
                                 turnOnCamera();
                         }
 
-                        if (cmd != NULL && checkCommand(cmd,CAMERAOFF,9) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,CAMERAOFF,9) == 0) {
                             if (confirm(in, "Are you sure you want to power OFF camera ? [y/N]: ", cfg.getInt(CMDTIMEOUT)))
                                 turnOffCamera();
                         }
 
-                        if (cmd != NULL && checkCommand(cmd,SHUTDOWNJETSON,14) == 0) {
+                        if (cmd != NULL && strncmp_ci(cmd,SHUTDOWNJETSON,14) == 0) {
                             if (confirm(in, "Are you sure you want to shutdown jetson ? [y/N]: ", cfg.getInt(CMDTIMEOUT)))
                                 sendShutdown();
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,NEWEVENT,8) == 0) {
+                            sch->timeEventUI(in, &cfg, cfg.getInt(CMDTIMEOUT));
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,PRINTEVENTS,8) == 0) {
+                            sch->printEvents(in);
                         }
 
                         // Reset the buffer and print out the prompt
@@ -197,7 +193,7 @@ class SystemControl
                         index -= 1;
                         if (index < 0)
                             index = 0;
-                        if (cfg.getInt(LOCALECHO)) {
+                        if ( index > 0 && cfg.getInt(LOCALECHO)) {
                            in->write("\b \b");
                         }
                     }
@@ -240,10 +236,13 @@ class SystemControl
         if (timeString != NULL) {
             // if we have ds3231 set that first
             DateTime dt(timeString);
-            if (ds3231Okay) {
-                _ds3231.adjust(dt.unixtime());
+            if (dt.isValid()) {
+                ui->println("Updating clock...");
+                if (ds3231Okay) {
+                    _ds3231.adjust(dt.unixtime());
+                }
+                _zerortc.setEpoch(dt.unixtime());
             }
-            _zerortc.setEpoch(dt.unixtime());
         }
     }
                       
@@ -315,9 +314,14 @@ class SystemControl
 
         // Start sensors
         _sensors.begin();
-
+        
         return true;
 
+    }
+
+    void loadScheduler() {
+        // Load scheduler
+        sch = new Scheduler(SCHEDULER_UID, &_flash);
     }
 
     void configWatchdog() {
@@ -366,6 +370,7 @@ class SystemControl
         float c = -1.0;
         float t = -1.0;
         float d = -1.0;
+        currentDepth = d;
 
         uint32_t unixtime; 
 
@@ -390,10 +395,16 @@ class SystemControl
             );
         }
 
+        if (cfg.getInt("ECHORBR") == 1)
+            echoRBR = true;
+        else
+            echoRBR = false;
+
         if (_rbr.haveNewData()) {
             c = _rbr.conductivity();
             t = _rbr.temperature();
             d = _rbr.pressure();
+            currentDepth = d;
             _rbr.invalidateData();
 
             // Check state (float up, down ratchet)
@@ -409,27 +420,44 @@ class SystemControl
                 lastDepth = d;
             }
 
-            // If profile mode is 0 and camera is on, shut it down
-            if (state == 1 && cfg.getInt(PROFILEMODE) == 0) {
-                if (cameraOn && !pendingPowerOff) {
-                    sendShutdown();
+            // Check depth limits if requested
+            bool depthValid = true;
+            if (cfg.getInt(MINDEPTH) > -1000 && cfg.getInt(MAXDEPTH) > -1000) {
+                
+                // Set depth invalid until we confirm it's within the limits
+                depthValid = false;
+
+                // Note that the min/max depth param is in mm and currentDepth is in dBar
+                // multiply current depth by 1000 to get approximately depth in mm.
+                if ((cfg.getInt(MINDEPTH) < currentDepth*1000) && (cfg.getInt(MAXDEPTH) > currentDepth*1000)) {
+                    depthValid = true;
                 }
             }
 
-            // If profile mode is 0 and camera is off, turn it on
-            if (state == -1 && cfg.getInt(PROFILEMODE) == 0) {
-                
-                if (!cameraOn) {
-                    turnOnCamera();
+            if (cfg.getInt(PROFILEMODE) == 0) {
+                if (state == 1 || !depthValid) {
+                    if (cameraOn && !pendingPowerOff) {
+                        sendShutdown();
+                    }
                 }
+                if (state == -1 && depthValid) {
+                    if (!cameraOn) {
+                        pendingPowerOn = true;
+                        pendingPowerOnTimer = _zerortc.getEpoch();
+                    }
+                }
+            }
+            else if (cfg.getInt(PROFILEMODE) == 1 && depthValid) {
+                pendingPowerOn = true;
             }
         }
 
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "$DM,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,%d,%d",
 
+            LOG_PROMPT,
             timeString,
             ((unsigned int) millis()) % 1000,
             _sensors.temperature, // In C
@@ -459,6 +487,7 @@ class SystemControl
     void writeConfig() {
         if (systemOkay) {
             cfg.writeConfig();
+            sch->writeToFlash();
         }
     }
 
@@ -497,13 +526,20 @@ class SystemControl
             return;
         }
 
+        // Check depth range
+
+        // Never turn on camera if voltage is too low or env sensors are bad
         if (lowVoltage || badEnv) {
             return;
         }
 
-        // If camera is set to be always on, and there are no issues, power it up now
-        if (cfg.getInt(PROFILEMODE) == (unsigned int)1) {
+        // turn on power under the following conditions:
+        // (1) another event requested power on
+        // (2) profile mode is set to always on
+        if (!cameraOn && (pendingPowerOn || cfg.getInt(PROFILEMODE) == (unsigned int)1)) {
+            printAllPorts("Powering ON camera...");
             turnOnCamera();
+            pendingPowerOn = false;
         }
     }
 

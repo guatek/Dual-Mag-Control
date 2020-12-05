@@ -4,8 +4,11 @@
 
 #include <Arduino.h>
 #include "Config.h"
+#include "Utils.h"
 
 #define MAX_PARAMS 256
+
+#define SCHEDULER_UID 256
 
 //////////////////////////////////////////
 // flash(SPI_CS, MANUFACTURER_ID)
@@ -84,7 +87,7 @@ class ConfigParam {
                     if (c == exitChar) {
                         return false;
                     }
-                    else if (c == '\n') {
+                    else if (c == '\r') {
                         if (bufferIndex < bufferLength) {
                             buffer[bufferIndex] = '\0';
                             int result = 0;
@@ -100,7 +103,7 @@ class ConfigParam {
                                 return true;
                             }
                             else {
-                                in->println("Invalid entry.");
+                                in->println("\r\nInvalid entry.");
                                 bufferIndex = 0;
                             }
                         }
@@ -108,6 +111,7 @@ class ConfigParam {
                     else {
                         if (bufferIndex < bufferLength) {
                             buffer[bufferIndex++] = c;
+                            in->write(c); // echo back
                         }
                     }
                 }
@@ -185,7 +189,7 @@ class SystemConfig {
         ConfigParam<float> * floatParams[MAX_PARAMS];
         int nIntParams;
         int uid;
-        int nFloatParams;   
+        int nFloatParams;
 
         SystemConfig() {
             nIntParams = 0;
@@ -213,6 +217,7 @@ class SystemConfig {
         }
 
         void printConfig(Stream * ui) {
+            ui->println();
             for (int i=0; i < nIntParams; i++){
                 intParams[i]->print(ui);
             }
@@ -224,7 +229,7 @@ class SystemConfig {
         int getInt(const char * name) {
             // Check int params
             for (int i = 0; i < nIntParams; i++) {
-                if (strncmp(intParams[i]->name, name, strlen(name)) == 0) {
+                if (strncmp_ci(intParams[i]->name, name, strlen(name)) == 0) {
                     return intParams[i]->val;
                 }
             }
@@ -234,7 +239,7 @@ class SystemConfig {
         float getFloat(const char * name) {
             // check float params
             for (int i = 0; i < nFloatParams; i++) {
-                if (strncmp(floatParams[i]->name, name, strlen(name)) == 0) {
+                if (strncmp_ci(floatParams[i]->name, name, strlen(name)) == 0) {
                     return floatParams[i]->val;
                 }
             }
@@ -245,26 +250,27 @@ class SystemConfig {
         bool set(const char * name, T newVal) {
             // Check int params
             for (int i = 0; i < nIntParams; i++) {
-                if (strncmp(intParams[i]->name, name, strlen(name)) == 0) {
+                if (strncmp_ci(intParams[i]->name, name, strlen(name)) == 0) {
                     return intParams[i]->setVal(newVal);
                 }
             }
 
             // check float params
             for (int i = 0; i < nFloatParams; i++) {
-                if (strncmp(floatParams[i]->name, name, strlen(name)) == 0) {
+                if (strncmp_ci(floatParams[i]->name, name, strlen(name)) == 0) {
                     return floatParams[i]->setVal(newVal);
                 }
             }
         }
 
-        bool readIntFromUI(const char * name, Stream * in, int * val, char exitChar, int cmdTimeout) {
+        bool readIntFromUI(Stream * in, const char * name, int * val, char exitChar, int cmdTimeout) {
             // Check int params
             for (int i = 0; i < nIntParams; i++) {
-                if (strncmp(intParams[i]->name, name, strlen(name)) == 0) {
+                if (strncmp_ci(intParams[i]->name, name, strlen(name)) == 0) {
                     return intParams[i]->readFromCLI(in, val, exitChar, cmdTimeout);
                 }
             }
+            return false;
         }
 
         bool parseConfigCommand(char * cmd, Stream * ui) {
@@ -283,14 +289,14 @@ class SystemConfig {
                 
                 // Check int params
                 for (int i = 0; i < nIntParams; i++) {
-                    if (strncmp(intParams[i]->name, name, strlen(name)) == 0) {
+                    if (strncmp_ci(intParams[i]->name, name, strlen(name)) == 0) {
                         bool updated = intParams[i]->setValFromString(val, strlen(val));
                         if (updated) {
                             ui->print("\r\nUpdated : ");
                             intParams[i]->print(ui);
                         }
                         else {
-                            ui->println("Invalid entry.");
+                            ui->println("\r\nInvalid entry.");
                         }
                         return updated;
                     }
@@ -298,14 +304,14 @@ class SystemConfig {
 
                 // check float params
                 for (int i = 0; i < nFloatParams; i++) {
-                    if (strncmp(floatParams[i]->name, name, strlen(name)) == 0) {
+                    if (strncmp_ci(floatParams[i]->name, name, strlen(name)) == 0) {
                         bool updated = floatParams[i]->setValFromString(val, strlen(val));
                         if (updated) {
                             ui->print("\r\nUpdated : ");
                             floatParams[i]->print(ui);
                         }
                         else {
-                            ui->println("Invalid entry.");
+                            ui->println("\r\nInvalid entry.");
                         }
                         return updated;
                     }

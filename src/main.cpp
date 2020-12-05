@@ -73,7 +73,7 @@ void setup() {
     // Add config parameters for system
     // IMPORTANT: add parameters at t he end of the list, otherwise you'll need to reflash the saved params in EEPROM before reading
     sys.cfg.addParam(LOGINT, "Time in ms between log events", "ms", 0, 100000, 250);
-    sys.cfg.addParam(POLLFREQ, "Rate of polling instruments", "Hz", 1, 50, 10, false, setPolling);
+    sys.cfg.addParam(POLLFREQ, "Rate of polling instruments", "Hz", 1, 50, 20, false, setPolling);
     sys.cfg.addParam(DEPTHCHECKINTERVAL, "Time in seconds between depth checks for testing ascent/descent", "s", 10, 300, 30);
     sys.cfg.addParam(DEPTHTHRESHOLD, "Depth change threshold to denote ascent or descent", "mm", 500, 10000, 1000);
     sys.cfg.addParam(LOCALECHO, "When > 0, echo serial input", "", 0, 1, 1);
@@ -101,6 +101,9 @@ void setup() {
     sys.cfg.addParam(HUMLIMIT, "Humidity in % where controller will shutdown and power off camera","%", 0, 100, 60);
     sys.cfg.addParam(MAXSHUTDOWNTIME, "Max time in seconds we wait before cutting power to camera", "s", 15, 600, 60);
     sys.cfg.addParam(CHECKINTERVAL, "Time in seconds between check for bad operating evironment", "s", 10, 3600, 30);
+    sys.cfg.addParam(MINDEPTH, "The minimum depth to allow powering on camera and recording", "mm", -2000, 10000, 500);
+    sys.cfg.addParam(MAXDEPTH, "The maximum depth to allow powering on camera and recording", "mm", -2000, 200000, 200000);
+    sys.cfg.addParam(ECHORBR,"0 = don't print RBR data, 1 = print RBR data over ui ports", "", 0, 1, 1);
 
     // configure watchdog timer if enabled
     sys.configWatchdog();
@@ -119,6 +122,8 @@ void setup() {
 
     sys.cfg.printConfig(&DEBUGPORT);
     sys.cfg.printConfig(&UI1);
+
+    sys.loadScheduler();
 
     // Setup flashes triggers and polling
     setFlashes();

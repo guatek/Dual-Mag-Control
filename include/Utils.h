@@ -58,6 +58,27 @@ bool confirm(Stream * in, const char * prompt, unsigned int cmdTimeout) {
     return false;
 }
 
+int strncmp_ci(const char * input, const char * command, int n) {
+    size_t maxLength = n;
+    
+    // Coerce to shortest string
+    if (strlen(input) < maxLength)
+        maxLength = strlen(input);
+        
+    if (strlen(command) < maxLength)
+        maxLength = strlen(command);
+
+    for (unsigned int i=0; i < maxLength; i++) {
+        if (tolower(input[i]) < tolower(command[i]))
+            return -1;
+        if (tolower(input[i]) > tolower(command[i]))
+            return 1;
+    }
+
+    // string match up to n chars
+    return 0;
+}
+
 
 
 #endif
