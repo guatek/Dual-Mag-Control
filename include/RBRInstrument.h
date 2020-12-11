@@ -15,8 +15,10 @@ class RBRInstrument {
     float cond;
     bool newData;
     bool echoData;
+    int lastHour, lastMinute, lastSecond, lastYear, lastMonth, lastDay;
     char buffer[MAX_BUFFER_LENGTH];
     int bufferIndex;
+    volatile bool reading;
 
 
     public:
@@ -25,6 +27,7 @@ class RBRInstrument {
         newData = false;
         echoData = true;
         bufferIndex = 0;
+        reading = false;
     }
 
     bool parseData(char * data) {
@@ -39,6 +42,12 @@ class RBRInstrument {
             if (res == 8) {
                 dBar = d;
                 temp = t;
+                lastHour = hour;
+                lastMinute = min;
+                lastSecond = (int)sec;
+                lastYear = year;
+                lastMonth = mon;
+                lastDay = day;
                 newData = true;
 
             }
@@ -47,6 +56,12 @@ class RBRInstrument {
             dBar = d;
             cond = c;
             temp = t;
+            lastHour = hour;
+            lastMinute = min;
+            lastSecond = (int)sec;
+            lastYear = year;
+            lastMonth = mon;
+            lastDay = day;
             newData = true;
         }
 
@@ -56,7 +71,7 @@ class RBRInstrument {
     void readData(Stream * port) {
         
         if (port != NULL && port->available()) {
-
+            reading = true;
             int bytesAvail = port->available();
             if (bufferIndex + bytesAvail < MAX_BUFFER_LENGTH - 1) { // -1 to give space for null term char
                 char c;
@@ -65,12 +80,13 @@ class RBRInstrument {
                     if (c == '\n' || c == '\r') {
                         if (bufferIndex > 0) {
                             buffer[bufferIndex++] = '\0';
+                            parseData(buffer);
+                            bufferIndex = 0;
                             if (echoData) {
                                 UI1.println(buffer);
                                 UI2.println(buffer);
                             }
-                            parseData(buffer);
-                            bufferIndex = 0;
+                            
                         }
                     }
                     else {
@@ -78,7 +94,12 @@ class RBRInstrument {
                     }
                 }
             }
+            reading = false;
         }
+    }
+
+    void setEchoData(bool echo) {
+        echoData = echo;
     }
 
     float temperature() {
@@ -93,14 +114,23 @@ class RBRInstrument {
         return cond;
     }
 
-    bool syncClock(RTCZero * rtc) {
-        if (newData) {
-        }
-        return true;
+    void getTimeString(char * buffer) {
+        sprintf(buffer,"%04d-%02d-%02dT%02d:%02d:%02d",
+            lastYear,
+            lastMonth,
+            lastDay,
+            lastHour,
+            lastMinute,
+            lastSecond
+        );
     }
 
     bool haveNewData() {
         return newData;
+    }
+
+    bool isReading() {
+        return reading;
     }
 
     void invalidateData() {

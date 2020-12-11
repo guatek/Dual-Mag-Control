@@ -103,6 +103,7 @@ void SERCOM1_Handler()
 #define MINDEPTH "MINDEPTH"
 #define MAXDEPTH "MAXDEPTH"
 #define ECHORBR "ECHORBR"
+#define USERBRCLOCK "USERBRCLOCK"
 
 // Define Commands
 #define CFG "CFG"
@@ -115,6 +116,7 @@ void SERCOM1_Handler()
 #define SHUTDOWNJETSON "SHUTDOWNJETSON"
 #define NEWEVENT "NEWEVENT"
 #define PRINTEVENTS "PRINTEVENTS"
+#define CLEAREVENTS "CLEAREVENTS"
 
 
 #endif

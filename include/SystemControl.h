@@ -71,11 +71,16 @@ class SystemControl
     unsigned long lastPowerOffTime;
     unsigned long pendingPowerOffTimer;
     unsigned long pendingPowerOnTimer;
+    unsigned long clockSyncTimer;
     unsigned long envTimer;
     unsigned long voltageTimer;
+
+    int lastFlashType, lastLowMagDuration, lastHighMagDuration, lastFrameRate;
+
     MovingAverage<float> avgVoltage;
     MovingAverage<float> avgTemp;
     MovingAverage<float> avgHum;
+    MovingAverage<float> avgDepth;
 
     Scheduler * sch;
     
@@ -129,7 +134,16 @@ class SystemControl
 
                         // CFG (configuration commands)
                         if (cmd != NULL && strncmp_ci(cmd,CFG, 3) == 0) {
-                            cfg.parseConfigCommand(rest, in);
+                            if (rest != NULL) {
+                                cfg.parseConfigCommand(rest, in);
+                            }
+                            else {
+                                char timeString[64];
+                                getTimeString(timeString);
+                                cfg.printConfig(in, timeString);
+
+                            }
+                            
                         }
 
                         // PORTPASS (pass through to other serial ports)
@@ -175,6 +189,11 @@ class SystemControl
                             sch->printEvents(in);
                         }
 
+                        if (cmd != NULL && strncmp_ci(cmd,CLEAREVENTS,8) == 0) {
+                            if (confirm(in, "Are you sure you want clear all events ? [y,N]: ", cfg.getInt(CMDTIMEOUT)))
+                                sch->clearEvents();
+                        }
+
                         // Reset the buffer and print out the prompt
                         if (c == '\n')
                             in->write('\r');
@@ -191,9 +210,10 @@ class SystemControl
                     // Handle backspace
                     if (c == '\b') {
                         index -= 1;
-                        if (index < 0)
+                        if (index < 0) {
                             index = 0;
-                        if ( index > 0 && cfg.getInt(LOCALECHO)) {
+                        }
+                        else if ( index >= 0 && cfg.getInt(LOCALECHO)) {
                            in->write("\b \b");
                         }
                     }
@@ -237,7 +257,7 @@ class SystemControl
             // if we have ds3231 set that first
             DateTime dt(timeString);
             if (dt.isValid()) {
-                ui->println("Updating clock...");
+                ui->println("\nUpdating clock...\n");
                 if (ds3231Okay) {
                     _ds3231.adjust(dt.unixtime());
                 }
@@ -298,7 +318,9 @@ class SystemControl
         lastDepthCheck = _zerortc.getEpoch();
         voltageTimer = _zerortc.getEpoch();
         envTimer = _zerortc.getEpoch();
-        lastDepth = 0.0;
+        clockSyncTimer = _zerortc.getEpoch();
+
+        lastDepth = -10.0;
 
         systemOkay = true;
         if (_flash.initialize()) {
@@ -319,9 +341,37 @@ class SystemControl
 
     }
 
+    void storeLastFlashConfig() {
+        // Set last config in case we call end event before start event
+        lastFlashType = cfg.getInt(FLASHTYPE);
+        lastFrameRate = cfg.getInt(FRAMERATE);
+        if (lastFlashType == 1) {        
+            lastLowMagDuration = cfg.getInt(LOWMAGREDFLASH);
+            lastHighMagDuration = cfg.getInt(HIGHMAGREDFLASH);
+        }
+        else {
+            lastLowMagDuration = cfg.getInt(LOWMAGCOLORFLASH);
+            lastHighMagDuration = cfg.getInt(HIGHMAGCOLORFLASH);
+        }
+    }
+
+    void restoreLastFlashConfig() {
+        cfg.set(FLASHTYPE, lastFlashType);
+        cfg.set(FRAMERATE, lastFrameRate);
+        if (lastFlashType == 1) {        
+            cfg.set(LOWMAGREDFLASH, lastLowMagDuration);
+            cfg.set(HIGHMAGREDFLASH, lastHighMagDuration);
+        }
+        else {
+            cfg.set(LOWMAGCOLORFLASH, lastLowMagDuration);
+            cfg.set(HIGHMAGCOLORFLASH, lastHighMagDuration);
+        }
+    }
+
     void loadScheduler() {
         // Load scheduler
         sch = new Scheduler(SCHEDULER_UID, &_flash);
+        storeLastFlashConfig();
     }
 
     void configWatchdog() {
@@ -359,25 +409,10 @@ class SystemControl
         }
     }
 
-    bool update() {
-
-        // Run updates and check for new data
-        _sensors.update();
-
-        // Build log string and send to UIs
-        char output[256];
-
-        float c = -1.0;
-        float t = -1.0;
-        float d = -1.0;
-        currentDepth = d;
-
-        uint32_t unixtime; 
-
-        char timeString[64];
+    void getTimeString(char * timeString) {
         
         sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
-
+        unsigned long unixtime;
         if (ds3231Okay) {
             DateTime now = _ds3231.now();
             unixtime = now.unixtime();
@@ -394,26 +429,56 @@ class SystemControl
                 _zerortc.getSeconds()
             );
         }
+    }
 
-        if (cfg.getInt("ECHORBR") == 1)
-            echoRBR = true;
+    bool update() {
+
+        // Run updates and check for new data
+        _sensors.update();
+
+        // Build log string and send to UIs
+        char output[256];
+
+        float c = -1.0;
+        float t = -1.0;
+        float d = -1.0;
+        currentDepth = d;
+
+        uint32_t unixtime; 
+
+        char timeString[64];
+        getTimeString(timeString);
+
+        if (cfg.getInt(ECHORBR) == 1)
+            _rbr.setEchoData(true);
         else
-            echoRBR = false;
+            _rbr.setEchoData(false);
 
         if (_rbr.haveNewData()) {
             c = _rbr.conductivity();
             t = _rbr.temperature();
             d = _rbr.pressure();
             currentDepth = d;
+            if (cfg.getInt(USERBRCLOCK) && _zerortc.getEpoch() - clockSyncTimer > 60) {
+                char timeBuffer[64];
+                _rbr.getTimeString(timeBuffer);
+                this->setTime(timeBuffer, &DEBUGPORT);
+                clockSyncTimer = _zerortc.getEpoch();
+            }
             _rbr.invalidateData();
+
+            bool depthCheckOkay = false;
+            if (lastDepth > -1.0 && fabs(currentDepth - lastDepth) < 20) {
+                depthCheckOkay = true;
+            }
 
             // Check state (float up, down ratchet)
             if (unixtime - lastDepthCheck > (unsigned int)cfg.getInt(DEPTHCHECKINTERVAL)) {
                 float delta_depth = d - lastDepth;
-                if ((state == -1 || state == 0) && delta_depth > ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
+                if (depthCheckOkay && (state == -1 || state == 0) && delta_depth > ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
                     state = 1; // ascent to descent
                 }
-                if ((state == 1 || state == 0)  && delta_depth < ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
+                if (depthCheckOkay && (state == 1 || state == 0)  && delta_depth < ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
                     state = -1; // descent to ascent
                 }
                 lastDepthCheck = unixtime;
@@ -422,7 +487,7 @@ class SystemControl
 
             // Check depth limits if requested
             bool depthValid = true;
-            if (cfg.getInt(MINDEPTH) > -1000 && cfg.getInt(MAXDEPTH) > -1000) {
+            if (depthCheckOkay && cfg.getInt(MINDEPTH) > -1000 && cfg.getInt(MAXDEPTH) > -1000) {
                 
                 // Set depth invalid until we confirm it's within the limits
                 depthValid = false;
@@ -441,14 +506,15 @@ class SystemControl
                     }
                 }
                 if (state == -1 && depthValid) {
-                    if (!cameraOn) {
+                    if (!cameraOn && !pendingPowerOn) {
                         pendingPowerOn = true;
                         pendingPowerOnTimer = _zerortc.getEpoch();
                     }
                 }
             }
-            else if (cfg.getInt(PROFILEMODE) == 1 && depthValid) {
+            else if (!cameraOn && cfg.getInt(PROFILEMODE) == 1 && depthValid) {
                 pendingPowerOn = true;
+                pendingPowerOnTimer = _zerortc.getEpoch();
             }
         }
 
@@ -508,7 +574,7 @@ class SystemControl
             _rbr.disableEcho();
             readInput(&UI2);
         }
-        _rbr.enableEcho();
+        _rbr.setEchoData(cfg.getInt(ECHORBR) == 1);
     }
 
     void printAllPorts(const char output[]) {
@@ -536,7 +602,7 @@ class SystemControl
         // turn on power under the following conditions:
         // (1) another event requested power on
         // (2) profile mode is set to always on
-        if (!cameraOn && (pendingPowerOn || cfg.getInt(PROFILEMODE) == (unsigned int)1)) {
+        if (pendingPowerOn || (!cameraOn && cfg.getInt(PROFILEMODE) == (unsigned int)1)) {
             printAllPorts("Powering ON camera...");
             turnOnCamera();
             pendingPowerOn = false;
@@ -633,6 +699,32 @@ class SystemControl
                     //_zerortc.standbyMode();
                 }
             }
+        }
+    }
+
+    void checkEvents() {
+        int result = sch->checkEvents(&_zerortc);
+        if (result == 1 && !pendingPowerOn && !cameraOn) {
+            // Store the current settings and set new ones
+            storeLastFlashConfig();
+            cfg.set(FLASHTYPE, sch->flashType);
+            cfg.set(FRAMERATE, sch->frameRate);
+            if (sch->flashType == 1) {
+                cfg.set(LOWMAGREDFLASH, sch->lowMagDuration);
+                cfg.set(HIGHMAGREDFLASH, sch->highMagDuration);
+            }
+            else {
+                cfg.set(LOWMAGCOLORFLASH, sch->lowMagDuration);
+                cfg.set(HIGHMAGCOLORFLASH, sch->highMagDuration);
+            }
+            configureFlashDurations();
+            setTriggers();
+            pendingPowerOn = true;
+            pendingPowerOnTimer = _zerortc.getEpoch();
+        }
+        else if (result == -1 && !pendingPowerOff && cameraOn) {
+            restoreLastFlashConfig();
+            sendShutdown();
         }
     }
 

@@ -84,6 +84,8 @@ class ConfigParam {
                 if (in->available()) {
                     // Read the next char and reset timer          
                     char c = in->read();
+                    // reset the timer
+                    startTimer = millis();
                     if (c == exitChar) {
                         return false;
                     }
@@ -104,8 +106,24 @@ class ConfigParam {
                             }
                             else {
                                 in->println("\r\nInvalid entry.");
+                                in->print("Enter a value for ");
+                                in->print(name);
+                                in->print(" [");
+                                in->print(minVal);
+                                in->print(",");
+                                in->print(maxVal);
+                                in->print("]: ");
                                 bufferIndex = 0;
                             }
+                        }
+                    }
+                    else if (c == '\b') {
+                        bufferIndex -= 1;
+                        if (bufferIndex < 0) {
+                            bufferIndex = 0;
+                        }
+                        else if ( index >= 0) {
+                           in->write("\b \b");
                         }
                     }
                     else {
@@ -168,15 +186,24 @@ class ConfigParam {
             }
         }
         void print(Stream * ui) {
-            ui->print(name);
-            ui->print(" [ ");
-            ui->print(minVal);
-            ui->print(",");
-            ui->print(val);
-            ui->print(",");
-            ui->print(maxVal);
-            ui->print(" ] : ");
-            ui->println(desc);
+            char buffer[256];
+            sprintf(buffer,"%-18s [%7d,%7d,%7d] %s",
+                name,
+                minVal,
+                val,
+                maxVal,
+                desc
+            );
+            ui->println(buffer);
+            //ui->print(name);
+            //ui->print("  [ ");
+            //ui->print(minVal);
+            //ui->print(",");
+            //ui->print(val);
+            //ui->print(",");
+            //ui->print(maxVal);
+            //ui->print(" ]  :  ");
+            //ui->println(desc);
         }
 };
 
@@ -216,8 +243,11 @@ class SystemConfig {
             }
         }
 
-        void printConfig(Stream * ui) {
+        void printConfig(Stream * ui, char * timeString) {
             ui->println();
+            ui->println(timeString);
+            ui->println("Name               [    min,   curr,    max] Description");
+            ui->println("---------------------------------------------------------");
             for (int i=0; i < nIntParams; i++){
                 intParams[i]->print(ui);
             }
@@ -261,6 +291,8 @@ class SystemConfig {
                     return floatParams[i]->setVal(newVal);
                 }
             }
+
+            return false;
         }
 
         bool readIntFromUI(Stream * in, const char * name, int * val, char exitChar, int cmdTimeout) {
@@ -274,50 +306,45 @@ class SystemConfig {
         }
 
         bool parseConfigCommand(char * cmd, Stream * ui) {
-            if (cmd == NULL) {
-                printConfig(ui);
-                return true;
-            }
-            else {
-                // Try to parse and set config
-                char * name = strtok(cmd, ",");
-                if (name == NULL)
-                    return false;
-                char * val = strtok(NULL, ",");
-                if (val == NULL)
-                    return false;
-                
-                // Check int params
-                for (int i = 0; i < nIntParams; i++) {
-                    if (strncmp_ci(intParams[i]->name, name, strlen(name)) == 0) {
-                        bool updated = intParams[i]->setValFromString(val, strlen(val));
-                        if (updated) {
-                            ui->print("\r\nUpdated : ");
-                            intParams[i]->print(ui);
-                        }
-                        else {
-                            ui->println("\r\nInvalid entry.");
-                        }
-                        return updated;
-                    }
-                }
 
-                // check float params
-                for (int i = 0; i < nFloatParams; i++) {
-                    if (strncmp_ci(floatParams[i]->name, name, strlen(name)) == 0) {
-                        bool updated = floatParams[i]->setValFromString(val, strlen(val));
-                        if (updated) {
-                            ui->print("\r\nUpdated : ");
-                            floatParams[i]->print(ui);
-                        }
-                        else {
-                            ui->println("\r\nInvalid entry.");
-                        }
-                        return updated;
+            // Try to parse and set config
+            char * name = strtok(cmd, ",");
+            if (name == NULL)
+                return false;
+            char * val = strtok(NULL, ",");
+            if (val == NULL)
+                return false;
+            
+            // Check int params
+            for (int i = 0; i < nIntParams; i++) {
+                if (strncmp_ci(intParams[i]->name, name, strlen(name)) == 0) {
+                    bool updated = intParams[i]->setValFromString(val, strlen(val));
+                    if (updated) {
+                        ui->print("\r\nUpdated : ");
+                        intParams[i]->print(ui);
                     }
+                    else {
+                        ui->println("\r\nInvalid entry.");
+                    }
+                    return updated;
                 }
-                
             }
+
+            // check float params
+            for (int i = 0; i < nFloatParams; i++) {
+                if (strncmp_ci(floatParams[i]->name, name, strlen(name)) == 0) {
+                    bool updated = floatParams[i]->setValFromString(val, strlen(val));
+                    if (updated) {
+                        ui->print("\r\nUpdated : ");
+                        floatParams[i]->print(ui);
+                    }
+                    else {
+                        ui->println("\r\nInvalid entry.");
+                    }
+                    return updated;
+                }
+            }
+                
 
             // If we didn't find any params to set return false
             return false;

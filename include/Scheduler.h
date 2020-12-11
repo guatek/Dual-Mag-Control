@@ -92,7 +92,11 @@ class TimeEvent {
         }
     }
 
-    bool checkStart(uint8_t h, uint8_t m, uint8_t s, RTCZero * rtc) {
+    bool checkStart(RTCZero * rtc) {
+        int h,m,s;
+        h = rtc->getHours();
+        m = rtc->getMinutes();
+        s = rtc->getSeconds();
         if (!running && (this->hour == h && this->min == m && this->sec <= s)) {
             running = true;
             startTime = rtc->getEpoch();
@@ -175,6 +179,8 @@ class Scheduler {
 
     public:
 
+    int flashType, lowMagDuration, highMagDuration, frameRate;
+    
     Scheduler(int uid, SPIFlash * _f) {
         this->baseUid = uid;
         this->uid = uid + sizeof(this->baseUid);
@@ -196,7 +202,7 @@ class Scheduler {
         // Read in saved time events
         if (nTimeEvents > 0) {
             for (int i = 0; i < nTimeEvents; i++) {
-                timeEvents[i] = new TimeEvent(uid, 0, 0, 0, 0, 0, 0, 0, 0); // dummy event to be filled from flash
+                timeEvents[i] = new TimeEvent(this->uid, 0, 0, 0, 0, 0, 0, 0, 0); // dummy event to be filled from flash
                 timeEvents[i]->readFromFlash(_f);
                 uid += timeEvents[i]->sizeOnFlash();
                 timeEvents[i]->printEvent(&DEBUGPORT);
@@ -254,6 +260,7 @@ class Scheduler {
                 lowMagDuration = cfg->getInt(LOWMAGREDFLASH);
                 highMagDuration = cfg->getInt(HIGHMAGREDFLASH);
             }
+            frameRate = cfg->getInt(FRAMERATE);
         }
 
         int hour, minute, second, duration;
@@ -307,7 +314,7 @@ class Scheduler {
         _f->writeBytes(baseUid, (void*)&nTimeEvents, sizeof(nTimeEvents));
         for (int i = 0; i < nTimeEvents; i++) {
             DEBUGPORT.print("writing time event: ");
-            DEBUGPORT.print(i);
+            DEBUGPORT.print(timeEvents[i]->uid);
             DEBUGPORT.println(" to flash...");
             timeEvents[i]->writeToFlash(_f);
         } 
@@ -330,7 +337,24 @@ class Scheduler {
         } 
     }
 
-    int checkEvents() {
+    void clearEvents() {
+        nTimeEvents = 0;
+    }
+
+    int checkEvents(RTCZero * rtc) {
+        for (int i = 0; i < nTimeEvents; i++) {
+            if (timeEvents[i]->checkStart(rtc)) {
+                // store current camera config and set from event
+                flashType = timeEvents[i]->flashType;
+                lowMagDuration = timeEvents[i]->lowMag;
+                highMagDuration = timeEvents[i]->highMag;
+                frameRate = timeEvents[i]->frameRate;
+                return 1;
+            }
+            if (timeEvents[i]->checkEnd(rtc)) {
+                return -1;
+            }
+        }
         return 0;
     }
     
