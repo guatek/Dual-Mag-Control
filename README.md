@@ -47,15 +47,11 @@ Details of the archetecture will be described soon. For the time being, the syst
 
 
 ## Reporting Issues
-We use GitHub Issues as the official bug tracker for the Black Dashboard React. Here are some advices for our users that want to report an issue:
-
-1. Make sure that you are using the latest version of the Black Dashboard React. Check the CHANGELOG from your dashboard on our [website](https://www.creative-tim.com/).
-2. Providing us reproducible steps for the issue will shorten the time it takes for it to be fixed.
-3. Some issues may be browser specific, so specifying in what browser you encountered the issue might help.
+We use GitHub Issues as the official bug tracker
 
 ## Technical Support or Questions
 
-If you need support beyond github please use our [Contact Page](http://www.guatek.com/contact/) or reach out to use directory via email or slack.
+If you need support beyond github please use our [Contact Page](http://www.guatek.com/contact/) or reach out to us directly via email or slack.
 
 ## Licensing
 
