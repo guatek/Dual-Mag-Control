@@ -5,7 +5,7 @@
 #include <Adafruit_ZeroTimer.h>
 
 #define FLASH_DELAY_OFFSET 3
-#define MIN_FLASH_DURATION 3
+#define MIN_FLASH_DURATION 1
 
 // Flash Triggers
 Adafruit_ZeroTimer highMagTimer = Adafruit_ZeroTimer(3);

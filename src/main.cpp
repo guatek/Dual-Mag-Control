@@ -14,7 +14,7 @@ void HighMagCallback()
     digitalWrite(HIGH_MAG_CAM_TRIG,HIGH);
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(HIGH_MAG_STROBE_TRIG,HIGH);
-    if (sys.highMagStrobeDuration-FLASH_DELAY_OFFSET > MIN_FLASH_DURATION)
+    if (sys.highMagStrobeDuration-FLASH_DELAY_OFFSET >= MIN_FLASH_DURATION)
         delayMicroseconds(sys.highMagStrobeDuration-FLASH_DELAY_OFFSET);
     digitalWrite(HIGH_MAG_STROBE_TRIG,LOW);
     delayMicroseconds(sys.trigWidth/2);
@@ -27,8 +27,8 @@ void LowMagCallback()
     digitalWrite(LOW_MAG_CAM_TRIG,HIGH);
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(LOW_MAG_STROBE_TRIG,HIGH);
-    if (sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET > MIN_FLASH_DURATION)
-    delayMicroseconds(sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET);
+    if (sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET >= MIN_FLASH_DURATION)
+        delayMicroseconds(sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET);
     digitalWrite(LOW_MAG_STROBE_TRIG,LOW);
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(LOW_MAG_CAM_TRIG,LOW);
