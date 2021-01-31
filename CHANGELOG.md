@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - README.md
 - LICENSE.md, MIT
+- Option to use SBE39 CTD instead of RBR CTD data
 
 ### Changed
 - MIN_FLASH_DURATION changed to 1 (us)

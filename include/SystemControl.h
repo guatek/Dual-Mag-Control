@@ -15,6 +15,7 @@
 #include "SystemConfig.h"
 #include "SystemTrigger.h"
 #include "RBRInstrument.h"
+#include "SBE39.h"
 #include "Utils.h"
 
 #define CMD_CHAR '!'
@@ -40,13 +41,27 @@ WDTZero _watchdog;
 // RBR instrument
 RBRInstrument _rbr;
 
+// SBE39 CTD
+SBE39 _sbe39;
+
 // Static polling function for instruments
+int instrumentType = 0;
 bool pollingEnable = false;
 bool echoRBR = false;
 void pollInstruments() {
     if (!pollingEnable)
         return;
-    _rbr.readData(&RBRPORT);
+    switch (instrumentType) {
+        case 0:
+            _rbr.readData(&RBRPORT);
+            break;
+        case 1:
+            _sbe39.readData(&RBRPORT);
+            break;
+        default:
+            _rbr.readData(&RBRPORT);
+            break;
+    }   
 }
 
 class SystemControl
@@ -764,6 +779,10 @@ class SystemControl
     void setPolling() {
         pollingEnable = true;
         configPolling(cfg.getInt(POLLFREQ), pollInstruments);
+    }
+
+    void setCTDType() {
+        instrumentType = cfg.getInt(CTDTYPE);
     }
         
 };

@@ -1,20 +1,21 @@
-#ifndef _RBR
+#ifndef _CTD
 
-#define _RBR
+#define _CTD
 
 #include <Arduino.h>
 #include "Config.h"
 
 #define MAX_BUFFER_LENGTH 256
 
-class RBRInstrument {
+class CTD {
 
-    private:
+    protected:
     float dBar;
     float temp;
     float cond;
     bool newData;
     bool echoData;
+    const char * fmtString;
     int lastHour, lastMinute, lastSecond, lastYear, lastMonth, lastDay;
     char buffer[MAX_BUFFER_LENGTH];
     int bufferIndex;
@@ -23,22 +24,28 @@ class RBRInstrument {
 
     public:
 
-    RBRInstrument() {
+    CTD() {
         newData = false;
+        this->fmtString = NULL;
         echoData = true;
         bufferIndex = 0;
         reading = false;
     }
 
     bool parseData(char * data) {
+
+        // Immediately exit if there is no format string to parse data to
+        if (fmtString == NULL)
+            return false;
+
         newData = false;
         float c, t, d, sec;
         int year, mon, day, hour, min;
-        int res = sscanf(data, "%d-%d-%d %d:%d:%f,%f,%f,%f", &year, &mon, &day, &hour, &min, &sec, &c, &t, &d);
+        int res = sscanf(data, fmtString, &year, &mon, &day, &hour, &min, &sec, &c, &t, &d);
 
         if (res != 9) {
             // try the t/d version
-            int res = sscanf(data, "%d-%d-%d %d:%d:%f,%f,%f", &year, &mon, &day, &hour, &min, &sec, &t, &d);
+            int res = sscanf(data, fmtString, &year, &mon, &day, &hour, &min, &sec, &t, &d);
             if (res == 8) {
                 dBar = d;
                 temp = t;

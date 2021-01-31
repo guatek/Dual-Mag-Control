@@ -104,6 +104,7 @@ void SERCOM1_Handler()
 #define MAXDEPTH "MAXDEPTH"
 #define ECHORBR "ECHORBR"
 #define USERBRCLOCK "USERBRCLOCK"
+#define CTDTYPE "CTDTYPE"
 
 // Define Commands
 #define CFG "CFG"
