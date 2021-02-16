@@ -25,3 +25,6 @@
 [submodule "lib/WDTZero"]
 	path = lib/WDTZero
 	url = https://github.com/javos65/WDTZero.git
+[submodule "lib/SdFat"]
+	path = lib/SdFat
+	url = https://github.com/greiman/SdFat.git
