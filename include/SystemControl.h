@@ -312,6 +312,10 @@ class SystemControl
         digitalWrite(CAMERA_POWER, LOW);
         digitalWrite(STROBE_POWER, HIGH);
 
+        // Setup Sd Card Pins
+        pinMode(SDCARD_DETECT, INPUT_PULLUP);
+
+
         // Start RTC
         _zerortc.begin();
 

@@ -146,7 +146,7 @@ class TimeEvent {
     }
 
     bool checkEnd(RTCZero * rtc) {
-        if (running && (rtc->getEpoch() - startTime)/60 > (unsigned long)duration) {
+        if (running && (rtc->getEpoch() - startTime)/60 >= (unsigned long)duration) {
             running = false;
             return true;
         }

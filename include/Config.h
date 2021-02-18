@@ -43,7 +43,7 @@ void SERCOM1_Handler()
 }
 
 // Define GPIOs
-#define GPIO_1_IO AREF
+#define GPIO_1_IO 42
 #define GPIO_2_IO SWIO
 #define GPIO_3_IO SWCLK
 
@@ -58,6 +58,11 @@ void SERCOM1_Handler()
 #define HIGH_MAG_STROBE_TRIG TRIG_0_0
 #define LOW_MAG_STROBE_TRIG TRIG_4_0
 #define FLASH_TYPE_PIN TRIG_1_0
+
+// Define SD CARD PINS
+#define SDCARD_DETECT GPIO_1_IO
+#define SDCARD_ENABLE 11
+#define SDCARD_CS 13
 
 #define DEBUGPORT Serial
 #define HWPORT0 Serial0
