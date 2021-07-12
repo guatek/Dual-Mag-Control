@@ -179,7 +179,7 @@ class Scheduler {
 
     public:
 
-    int flashType, lowMagDuration, highMagDuration, frameRate;
+    int flashType, flashDuration, frameRate;
     
     Scheduler(int uid, SPIFlash * _f) {
         this->baseUid = uid;
@@ -218,49 +218,15 @@ class Scheduler {
         ui->println("Create New Time Event:");
         if (confirm(ui, "Use custom camera config? [y,N]: ", cmdTimeout)) {
             
-            
-            // Flash Type
-            result = cfg->readIntFromUI(ui, FLASHTYPE, &flashType, exitCode, cmdTimeout);
-            if (!result)
-                return false;
-
-            // Flash Duration
-            if (flashType == 0) {
-                // Color
-                result = cfg->readIntFromUI(ui, LOWMAGCOLORFLASH, &lowMagDuration, exitCode, cmdTimeout);
+            result = cfg->readIntFromUI(ui, FLASH, &flashDuration, exitCode, cmdTimeout);
                 if (!result) 
                     return false;
-                result = cfg->readIntFromUI(ui, HIGHMAGCOLORFLASH, &highMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-            }
-            else {
-                // Far Red
-                result = cfg->readIntFromUI(ui, LOWMAGREDFLASH, &lowMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-                result = cfg->readIntFromUI(ui, HIGHMAGREDFLASH, &highMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-            }
             
             // Frame rate
             result = cfg->readIntFromUI(ui, FRAMERATE, &frameRate, exitCode, cmdTimeout);
             if (!result)
                 return false;
 
-        }
-        else {
-            flashType = cfg->getInt(FLASHTYPE);
-            if (flashType == 0) {
-                lowMagDuration = cfg->getInt(LOWMAGCOLORFLASH);
-                highMagDuration = cfg->getInt(HIGHMAGCOLORFLASH);
-            }
-            else {
-                lowMagDuration = cfg->getInt(LOWMAGREDFLASH);
-                highMagDuration = cfg->getInt(HIGHMAGREDFLASH);
-            }
-            frameRate = cfg->getInt(FRAMERATE);
         }
 
         int hour, minute, second, duration;
@@ -346,8 +312,7 @@ class Scheduler {
             if (timeEvents[i]->checkStart(rtc)) {
                 // store current camera config and set from event
                 flashType = timeEvents[i]->flashType;
-                lowMagDuration = timeEvents[i]->lowMag;
-                highMagDuration = timeEvents[i]->highMag;
+                flashDuration = timeEvents[i]->lowMag;
                 frameRate = timeEvents[i]->frameRate;
                 return 1;
             }

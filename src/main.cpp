@@ -9,29 +9,18 @@
 SystemControl sys;
 
 // High Mag Trigger Callback
-void HighMagCallback()
+void TriggerCallback()
 {
-    digitalWrite(HIGH_MAG_CAM_TRIG,HIGH);
+    digitalWrite(LEFT_CAM_TRIG,HIGH);
+    digitalWrite(RIGHT_CAM_TRIG,HIGH);
     delayMicroseconds(sys.trigWidth/2);
-    digitalWrite(HIGH_MAG_STROBE_TRIG,HIGH);
-    if (sys.highMagStrobeDuration-FLASH_DELAY_OFFSET >= MIN_FLASH_DURATION)
-        delayMicroseconds(sys.highMagStrobeDuration-FLASH_DELAY_OFFSET);
-    digitalWrite(HIGH_MAG_STROBE_TRIG,LOW);
+    digitalWrite(STROBE_TRIG,HIGH);
+    if (sys.strobeDuration-FLASH_DELAY_OFFSET >= MIN_FLASH_DURATION)
+        delayMicroseconds(sys.strobeDuration-FLASH_DELAY_OFFSET);
+    digitalWrite(STROBE_TRIG,LOW);
     delayMicroseconds(sys.trigWidth/2);
-    digitalWrite(HIGH_MAG_CAM_TRIG,LOW);
-}
-
-// Low Mag Trigger Callback
-void LowMagCallback()
-{
-    digitalWrite(LOW_MAG_CAM_TRIG,HIGH);
-    delayMicroseconds(sys.trigWidth/2);
-    digitalWrite(LOW_MAG_STROBE_TRIG,HIGH);
-    if (sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET >= MIN_FLASH_DURATION)
-        delayMicroseconds(sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET);
-    digitalWrite(LOW_MAG_STROBE_TRIG,LOW);
-    delayMicroseconds(sys.trigWidth/2);
-    digitalWrite(LOW_MAG_CAM_TRIG,LOW);
+    digitalWrite(LEFT_CAM_TRIG,LOW);
+    digitalWrite(RIGHT_CAM_TRIG,LOW);
 }
 
 // Wrapper for updaing timers and flashes from callback functions
@@ -96,11 +85,7 @@ void setup() {
     sys.cfg.addParam(STROBEDELAY, "Time between camera trigger and strobe trigger in us", "us", 5, 1000, 50, false, setFlashes);
     sys.cfg.addParam(FRAMERATE, "Camera frame rate in Hz", "Hz", 1, 30, 10, false, setTriggers);
     sys.cfg.addParam(TRIGWIDTH, "Width of the camera trigger pulse in us", "us", 30, 10000, 100, false, setFlashes);
-    sys.cfg.addParam(LOWMAGCOLORFLASH, "Width of the low-mag white flash in us", "us", 1, 100000, 10, false, setFlashes);
-    sys.cfg.addParam(LOWMAGREDFLASH, "Width of the low-mag far red flash in us", "us", 1, 100000, 10, false, setFlashes);
-    sys.cfg.addParam(HIGHMAGCOLORFLASH, "Width of the high-mag white flash in us", "us", 1, 100000, 10, false, setFlashes);
-    sys.cfg.addParam(HIGHMAGREDFLASH, "Width of the high-mag far red flash in us", "us", 1, 100000, 10, false, setFlashes);
-    sys.cfg.addParam(FLASHTYPE, "0 = white strobes, 1 = far red strobes","", 0, 1, 0, false, setFlashes);
+    sys.cfg.addParam(FLASH, "Width of the low-mag white flash in us", "us", 1, 100000, 10, false, setFlashes);
     sys.cfg.addParam(PROFILEMODE,"0 = upcast only, 1 = always on", "", 0, 1, 0);
     sys.cfg.addParam(LOWVOLTAGE, "Voltage in mV where we shut down system", "mV", 10000, 14000, 11500);
     sys.cfg.addParam(STANDBY, "If voltage is low go into standby mode", "", 0, 1, 0);

@@ -28,8 +28,7 @@ void TC5_Handler(){
   Adafruit_ZeroTimer::timerHandler(5);
 }
 
-void HighMagCallback();
-void LowMagCallback();
+void TriggerCallback();
 
 void configTimer(float freq, uint16_t * divider, uint16_t * compare, tc_clock_prescaler * prescaler) {
        // Set up the flexible divider/compare
@@ -79,11 +78,9 @@ void configTimer(float freq, uint16_t * divider, uint16_t * compare, tc_clock_pr
 
 void configTriggers(float freq) {
 
-    pinMode(HIGH_MAG_CAM_TRIG,OUTPUT);
-    pinMode(LOW_MAG_CAM_TRIG,OUTPUT);
-    pinMode(HIGH_MAG_STROBE_TRIG,OUTPUT);
-    pinMode(LOW_MAG_STROBE_TRIG,OUTPUT);
-    pinMode(FLASH_TYPE_PIN,OUTPUT);
+    pinMode(LEFT_CAM_TRIG,OUTPUT);
+    pinMode(RIGHT_CAM_TRIG,OUTPUT);
+    pinMode(STROBE_TRIG,OUTPUT);
 
     Serial.println("Trigger Configuration");
 
@@ -103,21 +100,8 @@ void configTriggers(float freq) {
             );
 
     highMagTimer.setCompare(0, compare);
-    highMagTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, HighMagCallback);
+    highMagTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, TriggerCallback);
     highMagTimer.enable(true);
-
-    configTimer(freq, &divider, &compare, &prescaler);
-
-    lowMagTimer.enable(false);
-    lowMagTimer.configure(prescaler,       // prescaler
-            TC_COUNTER_SIZE_16BIT,       // bit width of timer/counter
-            TC_WAVE_GENERATION_MATCH_PWM // frequency or PWM mode
-            );
-
-    lowMagTimer.setCompare(0, compare);
-    lowMagTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, LowMagCallback);
-    lowMagTimer.enable(true);
-
 
 }
 

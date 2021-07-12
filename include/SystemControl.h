@@ -19,8 +19,8 @@
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "DMCTRL > "
-#define LOG_PROMPT "$DMCTRL"
+#define PROMPT "SCCTRL > "
+#define LOG_PROMPT "$SCCTRL"
 #define CMD_BUFFER_SIZE 128
 
 #define STROBE_POWER 7
@@ -90,7 +90,7 @@ class SystemControl
     unsigned long envTimer;
     unsigned long voltageTimer;
 
-    int lastFlashType, lastLowMagDuration, lastHighMagDuration, lastFrameRate;
+    int lastStrobeDuration, lastFrameRate;
 
     MovingAverage<float> avgVoltage;
     MovingAverage<float> avgTemp;
@@ -286,8 +286,7 @@ class SystemControl
 
     SystemConfig cfg;
     int trigWidth;
-    int lowMagStrobeDuration;
-    int highMagStrobeDuration;
+    int strobeDuration;
     int flashType;
     int frameRate;
   
@@ -362,29 +361,13 @@ class SystemControl
 
     void storeLastFlashConfig() {
         // Set last config in case we call end event before start event
-        lastFlashType = cfg.getInt(FLASHTYPE);
         lastFrameRate = cfg.getInt(FRAMERATE);
-        if (lastFlashType == 1) {        
-            lastLowMagDuration = cfg.getInt(LOWMAGREDFLASH);
-            lastHighMagDuration = cfg.getInt(HIGHMAGREDFLASH);
-        }
-        else {
-            lastLowMagDuration = cfg.getInt(LOWMAGCOLORFLASH);
-            lastHighMagDuration = cfg.getInt(HIGHMAGCOLORFLASH);
-        }
+        strobeDuration = cfg.getInt(FLASH);
     }
 
     void restoreLastFlashConfig() {
-        cfg.set(FLASHTYPE, lastFlashType);
         cfg.set(FRAMERATE, lastFrameRate);
-        if (lastFlashType == 1) {        
-            cfg.set(LOWMAGREDFLASH, lastLowMagDuration);
-            cfg.set(HIGHMAGREDFLASH, lastHighMagDuration);
-        }
-        else {
-            cfg.set(LOWMAGCOLORFLASH, lastLowMagDuration);
-            cfg.set(HIGHMAGCOLORFLASH, lastHighMagDuration);
-        }
+        cfg.set(FLASH, strobeDuration);
     }
 
     void loadScheduler() {
@@ -556,9 +539,7 @@ class SystemControl
             d,
             state,
             cameraOn,
-            flashType,
-            lowMagStrobeDuration,
-            highMagStrobeDuration,
+            strobeDuration,
             frameRate
             
         );
@@ -726,16 +707,8 @@ class SystemControl
         if (result == 1 && !pendingPowerOn && !cameraOn) {
             // Store the current settings and set new ones
             storeLastFlashConfig();
-            cfg.set(FLASHTYPE, sch->flashType);
             cfg.set(FRAMERATE, sch->frameRate);
-            if (sch->flashType == 1) {
-                cfg.set(LOWMAGREDFLASH, sch->lowMagDuration);
-                cfg.set(HIGHMAGREDFLASH, sch->highMagDuration);
-            }
-            else {
-                cfg.set(LOWMAGCOLORFLASH, sch->lowMagDuration);
-                cfg.set(HIGHMAGCOLORFLASH, sch->highMagDuration);
-            }
+            cfg.set(FLASH, sch->flashDuration);
             configureFlashDurations();
             setTriggers();
             pendingPowerOn = true;
@@ -762,17 +735,7 @@ class SystemControl
     void configureFlashDurations() {
         // Set global delays for ISRs
         trigWidth = cfg.getInt(TRIGWIDTH);
-        flashType = cfg.getInt(FLASHTYPE);
-        if (flashType == 0) {
-            digitalWrite(FLASH_TYPE_PIN,HIGH);
-            lowMagStrobeDuration = cfg.getInt(LOWMAGCOLORFLASH);
-            highMagStrobeDuration = cfg.getInt(HIGHMAGCOLORFLASH);
-        }
-        else {
-            digitalWrite(FLASH_TYPE_PIN,LOW);
-            lowMagStrobeDuration = cfg.getInt(LOWMAGREDFLASH);
-            highMagStrobeDuration = cfg.getInt(HIGHMAGREDFLASH);
-        }
+        strobeDuration = cfg.getInt(FLASH);
     }
 
     void setTriggers() {
