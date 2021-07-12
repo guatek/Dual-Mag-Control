@@ -62,6 +62,13 @@ void turnOnCamera() {
 
 void setup() {
 
+    // Imediately turn off camera and strobe ports in case we hang on other
+    // parts of the setup
+    pinMode(CAMERA_POWER, OUTPUT);
+    pinMode(STROBE_POWER, OUTPUT);
+    digitalWrite(CAMERA_POWER, LOW);
+    digitalWrite(STROBE_POWER, HIGH);
+
     // Start the debug port
     DEBUGPORT.begin(115200);
 
