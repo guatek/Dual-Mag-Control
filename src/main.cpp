@@ -101,7 +101,7 @@ void setup() {
     sys.cfg.addParam(MAXDEPTH, "The maximum depth to allow powering on camera and recording", "mm", -2000, 1000000, 500000);
     sys.cfg.addParam(ECHORBR,"0 = don't print RBR data, 1 = print RBR data over ui ports", "", 0, 1, 1);
     sys.cfg.addParam(USERBRCLOCK,"0 = Use value of RTC, 1 = Sync RTC with time data from RBR CTD","",0,1,1);
-    sys.cfg.addParam(CTDTYPE, "0 = RBR, 1 = SBE39, The type of CTD data to parse","",0,0,1, setCTDType);
+    sys.cfg.addParam(CTDTYPE, "0 = RBR, 1 = SBE39, The type of CTD data to parse","",0,0,1, false, setCTDType);
 
     // configure watchdog timer if enabled
     sys.configWatchdog();

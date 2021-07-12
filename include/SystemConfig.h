@@ -185,13 +185,14 @@ class ConfigParam {
                 return false;
             }
         }
+
         void print(Stream * ui) {
             char buffer[256];
             sprintf(buffer,"%-18s [%7d,%7d,%7d] %s",
                 name,
-                minVal,
-                val,
-                maxVal,
+                (int)minVal,
+                (int)val,
+                (int)maxVal,
                 desc
             );
             ui->println(buffer);

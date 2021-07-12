@@ -411,10 +411,11 @@ class SystemControl
         }
     }
 
-    void getTimeString(char * timeString) {
+    unsigned long getTimeString(char * timeString) {
         
-        sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
         unsigned long unixtime;
+
+        sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
         if (ds3231Okay) {
             DateTime now = _ds3231.now();
             unixtime = now.unixtime();
@@ -431,6 +432,9 @@ class SystemControl
                 _zerortc.getSeconds()
             );
         }
+
+        return unixtime;
+
     }
 
     bool update() {
@@ -446,10 +450,10 @@ class SystemControl
         float d = -1.0;
         currentDepth = d;
 
-        uint32_t unixtime; 
+        
 
         char timeString[64];
-        getTimeString(timeString);
+        uint32_t unixtime = getTimeString(timeString);
 
         if (cfg.getInt(ECHORBR) == 1)
             _rbr.setEchoData(true);
@@ -708,7 +712,7 @@ class SystemControl
             // Store the current settings and set new ones
             storeLastFlashConfig();
             cfg.set(FRAMERATE, sch->frameRate);
-            cfg.set(FLASH, sch->flashDuration);
+            cfg.set(FLASH, sch->flash);
             configureFlashDurations();
             setTriggers();
             pendingPowerOn = true;
