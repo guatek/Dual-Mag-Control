@@ -1,7 +1,7 @@
 # Stream-Cam-Control
 ![version](https://img.shields.io/badge/version-1.0.0-blue.svg) ![license](https://img.shields.io/badge/license-MIT-blue.svg) 
 
-Stream-Cam-Control is an Arduino (C++) firmware for controlling the Guatek-Stream-Cam system built in 2021, revA. The system is designed around a [LowPowerLabs](https://lowpowerlab.com/) [Moteino M0](https://lowpowerlab.com/category/moteino/moteinom0/), which is a compact and pin-rich breakout board for the Atmel SAMD21.
+Stream-Cam-Control is an Arduino (C++) firmware for controlling the Guatek-Stream-Cam system built in 2021, revA. Much of the firmware and hardware is derived from the [Dual-Mag-Control](https://github.com/guatek/Dual-Mag-Control) repo and runs on the same hardware. The system is designed around a [LowPowerLabs](https://lowpowerlab.com/) [Moteino M0](https://lowpowerlab.com/category/moteino/moteinom0/), which is a compact and pin-rich breakout board for the Atmel SAMD21.
 
 ## Requirements
 
