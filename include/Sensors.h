@@ -25,9 +25,9 @@ class Sensors {
    
     public:
 
-        float voltage[2];
-        float current[2];
-        float power[2];
+        float voltage[3];
+        float current[3];
+        float power[3];
         float temperature;
         float pressure;
         float humidity;
@@ -51,7 +51,7 @@ class Sensors {
                 sensorsValid = false;
             }
 
-            if (!_ina260_b.begin(INA260_LED_ADDR)) {
+            if (!_ina260_c.begin(INA260_LED_ADDR)) {
                 DEBUGPORT.println("Couldn't find INA260 C chip");
                 sensorsValid = false;
             }
@@ -88,6 +88,9 @@ class Sensors {
             current[1] = _ina260_b.readCurrent();
             voltage[1] = _ina260_b.readBusVoltage();
             power[1] = _ina260_b.readPower();
+            current[2] = _ina260_c.readCurrent();
+            voltage[2] = _ina260_c.readBusVoltage();
+            power[2] = _ina260_c.readPower();
         }
 
         void printEnv() {

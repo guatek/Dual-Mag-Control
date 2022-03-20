@@ -23,11 +23,7 @@
 #define LED_TRIG4 7
 
 // Define Trigger pins
-#define HIGH_MAG_CAM_TRIG GPIO_2_IO
-#define LOW_MAG_CAM_TRIG GPIO_3_IO
-#define HIGH_MAG_STROBE_TRIG TRIG_0_0
-#define LOW_MAG_STROBE_TRIG TRIG_4_0
-#define FLASH_TYPE_PIN TRIG_1_0
+#define CAM_TRIG TRIG_0_0
 
 // Define dimming pins
 #define DIMMING_CS 13
@@ -81,8 +77,7 @@
 #define NEWEVENT "NEWEVENT"
 #define PRINTEVENTS "PRINTEVENTS"
 #define CLEAREVENTS "CLEAREVENTS"
-#define LEDSON  "LEDSON"
-#define LEDSOFF "LEDSOFF"
+#define STROBEALL "STROBEALL"
 
 
 #endif

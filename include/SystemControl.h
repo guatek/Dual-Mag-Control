@@ -15,8 +15,8 @@
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "DMCTRL > "
-#define LOG_PROMPT "$DMCTRL"
+#define PROMPT "CV > "
+#define LOG_PROMPT "$CV"
 #define CMD_BUFFER_SIZE 128
 
 // Global Sensors
@@ -166,19 +166,10 @@ class SystemControl
                                 sendShutdown();
                         }
 
-                        if (cmd != NULL && strncmp_ci(cmd,LEDSON,6) == 0) {
-                            digitalWrite(LED_TRIG1,HIGH);
-                            digitalWrite(LED_TRIG2,HIGH);
-                            digitalWrite(LED_TRIG3,HIGH);
-                            digitalWrite(LED_TRIG4,HIGH);
+                        if (cmd != NULL && strncmp_ci(cmd,STROBEALL,9) == 0) {
+                            strobeAllLEDS();
                         }
-
-                        if (cmd != NULL && strncmp_ci(cmd,LEDSOFF,7) == 0) {
-                            digitalWrite(LED_TRIG1,LOW);
-                            digitalWrite(LED_TRIG2,LOW);
-                            digitalWrite(LED_TRIG3,LOW);
-                            digitalWrite(LED_TRIG4,LOW);
-                        }
+                        
 
                         // Reset the buffer and print out the prompt
                         if (c == '\n')
@@ -288,6 +279,11 @@ class SystemControl
         lastDepth = -10.0;
 
         systemOkay = true;
+        if (_flash.initialize()) {
+            DEBUGPORT.println("Flash Init OK.");
+        }
+
+        systemOkay = true;
 
         // Start sensors
         _sensors.begin();
@@ -371,25 +367,18 @@ class SystemControl
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d",
 
             LOG_PROMPT,
-            timeString,
-            ((unsigned int) millis()) % 1000,
             _sensors.temperature, // In C
             _sensors.pressure / 1000, // in kPa
             _sensors.humidity, // in %
             _sensors.voltage[0] / 1000, // In Volts
             _sensors.power[0] / 1000, // in W
             _sensors.power[1] / 1000, // in W
-            c,
-            t,
-            d,
+            _sensors.power[2] / 1000, // in W
             state,
             cameraOn,
-            flashType,
-            lowMagStrobeDuration,
-            highMagStrobeDuration,
             frameRate
             
         );
@@ -554,6 +543,44 @@ class SystemControl
         else {
             DEBUGPORT.println("Camera not powered on, not sending shutdown command");
         }
+    }
+
+    void strobeLED(int cameraTrig, int ledTrig) {
+        int flashDuration = 0;
+        if (ledTrig == LED_TRIG1) {
+            flashDuration = cfg.getInt(FLASH1);
+        }
+        if (ledTrig == LED_TRIG2) {
+            flashDuration = cfg.getInt(FLASH2);
+        }
+        if (ledTrig == LED_TRIG3) {
+            flashDuration = cfg.getInt(FLASH3);
+        }
+        if (ledTrig == LED_TRIG4) {
+            flashDuration = cfg.getInt(FLASH4);
+        }
+        
+        int trigwidth = cfg.getInt(TRIGWIDTH);
+
+        digitalWrite(cameraTrig,HIGH);
+        delayMicroseconds(trigWidth/2);
+        digitalWrite(ledTrig,HIGH);
+        delayMicroseconds(flashDuration);
+        digitalWrite(ledTrig,LOW);
+        delayMicroseconds(trigWidth/2);
+        digitalWrite(cameraTrig,LOW);
+    }
+
+    void strobeAllLEDS() {
+        int frameRate = cfg.getInt(FRAMERATE);
+        int frameDelay = 1000 / frameRate; // in ms
+        strobeLED(CAM_TRIG, LED_TRIG1);
+        delay(frameDelay);
+        strobeLED(CAM_TRIG, LED_TRIG2);
+        delay(frameDelay);
+        strobeLED(CAM_TRIG, LED_TRIG3);
+        delay(frameDelay);
+        strobeLED(CAM_TRIG, LED_TRIG4);
     }
         
 };
