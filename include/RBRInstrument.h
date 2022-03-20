@@ -84,7 +84,6 @@ class RBRInstrument {
                             bufferIndex = 0;
                             if (echoData) {
                                 UI1.println(buffer);
-                                UI2.println(buffer);
                             }
                             
                         }

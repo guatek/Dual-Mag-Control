@@ -23,9 +23,6 @@
 #define LOG_PROMPT "$DMCTRL"
 #define CMD_BUFFER_SIZE 128
 
-#define STROBE_POWER 7
-#define CAMERA_POWER 6
-
 // Global Sensors
 Sensors _sensors;
 
@@ -48,21 +45,6 @@ SBE39 _sbe39;
 int instrumentType = 0;
 bool pollingEnable = false;
 bool echoRBR = false;
-void pollInstruments() {
-    if (!pollingEnable)
-        return;
-    switch (instrumentType) {
-        case 0:
-            _rbr.readData(&RBRPORT);
-            break;
-        case 1:
-            _sbe39.readData(&RBRPORT);
-            break;
-        default:
-            _rbr.readData(&RBRPORT);
-            break;
-    }   
-}
 
 class SystemControl
 {
@@ -209,6 +191,20 @@ class SystemControl
                                 sch->clearEvents();
                         }
 
+                        if (cmd != NULL && strncmp_ci(cmd,LEDSON,6) == 0) {
+                            digitalWrite(LED_TRIG1,HIGH);
+                            digitalWrite(LED_TRIG2,HIGH);
+                            digitalWrite(LED_TRIG3,HIGH);
+                            digitalWrite(LED_TRIG4,HIGH);
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,LEDSOFF,7) == 0) {
+                            digitalWrite(LED_TRIG1,LOW);
+                            digitalWrite(LED_TRIG2,LOW);
+                            digitalWrite(LED_TRIG3,LOW);
+                            digitalWrite(LED_TRIG4,LOW);
+                        }
+
                         // Reset the buffer and print out the prompt
                         if (c == '\n')
                             in->write('\r');
@@ -257,12 +253,6 @@ class SystemControl
                 case '1':
                     portpass(in, &HWPORT1, cfg.getInt(LOCALECHO) == 1);
                     break;
-                case '2':
-                    portpass(in, &HWPORT2, cfg.getInt(LOCALECHO) == 1);
-                    break;
-                case '3':
-                    portpass(in, &HWPORT3, cfg.getInt(LOCALECHO) == 1);
-                    break;
             }
         }
     }
@@ -305,30 +295,21 @@ class SystemControl
 
     bool begin() {
 
-        //Turn off strobe and camera power
-        pinMode(CAMERA_POWER, OUTPUT);
-        pinMode(STROBE_POWER, OUTPUT);
-
-        digitalWrite(CAMERA_POWER, LOW);
-        digitalWrite(STROBE_POWER, HIGH);
-
-        // Setup Sd Card Pins
-        pinMode(SDCARD_DETECT, INPUT_PULLUP);
-
 
         // Start RTC
         _zerortc.begin();
 
+        ds3231Okay = false;
         // Start DS3231
-        ds3231Okay = true;
-        if (!_ds3231.begin()) {
-            DEBUGPORT.println("Could not init DS3231, time will be lost on power cycle.");
-            ds3231Okay = false;
-        }
-        else {
-            // sync rtczero to DS3231
-            _zerortc.setEpoch(_ds3231.now().unixtime());
-        }
+        //ds3231Okay = true;
+        //if (!_ds3231.begin()) {
+        //    DEBUGPORT.println("Could not init DS3231, time will be lost on power cycle.");
+        //    ds3231Okay = false;
+        //}
+        //else {
+        //    // sync rtczero to DS3231
+        //    _zerortc.setEpoch(_ds3231.now().unixtime());
+        //}
 
         // set the startup timer
         startupTimer = _zerortc.getEpoch();
@@ -342,16 +323,6 @@ class SystemControl
         lastDepth = -10.0;
 
         systemOkay = true;
-        if (_flash.initialize()) {
-            DEBUGPORT.println("Flash Init OK.");
-        }
-            
-        else {
-            DEBUGPORT.print("Init FAIL, expectedDeviceID(0x");
-            DEBUGPORT.print(_expectedDeviceID, HEX);
-            DEBUGPORT.print(") mismatched the read value: 0x");
-            DEBUGPORT.println(_flash.readDeviceId(), HEX);
-        }
 
         // Start sensors
         _sensors.begin();
@@ -405,7 +376,6 @@ class SystemControl
             DEBUGPORT.println("Turning ON camera power...");
             cameraOn = true;
             digitalWrite(CAMERA_POWER, HIGH);
-            digitalWrite(STROBE_POWER, LOW);
             lastPowerOnTime = _zerortc.getEpoch();
             return true;
         }
@@ -419,7 +389,6 @@ class SystemControl
             DEBUGPORT.println("Turning OFF camera power...");
             cameraOn = false;
             digitalWrite(CAMERA_POWER, LOW);
-            digitalWrite(STROBE_POWER, HIGH);
             lastPowerOffTime = _zerortc.getEpoch();
             return true;
         }
@@ -589,16 +558,11 @@ class SystemControl
             _rbr.disableEcho();
             readInput(&UI1);
         }
-        if (UI2.available() > 0) {
-            _rbr.disableEcho();
-            readInput(&UI2);
-        }
         _rbr.setEchoData(cfg.getInt(ECHORBR) == 1);
     }
 
     void printAllPorts(const char output[]) {
         UI1.println(output);
-        UI2.println(output);
         DEBUGPORT.println(output);
     }
 
@@ -778,11 +742,6 @@ class SystemControl
     void setTriggers() {
         frameRate = cfg.getInt(FRAMERATE); 
         configTriggers(cfg.getInt(FRAMERATE));
-    }
-
-    void setPolling() {
-        pollingEnable = true;
-        configPolling(cfg.getInt(POLLFREQ), pollInstruments);
     }
 
     void setCTDType() {

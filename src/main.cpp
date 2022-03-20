@@ -27,9 +27,17 @@ void LowMagCallback()
     digitalWrite(LOW_MAG_CAM_TRIG,HIGH);
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(LOW_MAG_STROBE_TRIG,HIGH);
+    digitalWrite(LED_TRIG1,HIGH);
+    digitalWrite(LED_TRIG2,HIGH);
+    digitalWrite(LED_TRIG3,HIGH);
+    digitalWrite(LED_TRIG4,HIGH);
     if (sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET >= MIN_FLASH_DURATION)
         delayMicroseconds(sys.lowMagStrobeDuration-FLASH_DELAY_OFFSET);
     digitalWrite(LOW_MAG_STROBE_TRIG,LOW);
+    digitalWrite(LED_TRIG1,LOW);
+    digitalWrite(LED_TRIG2,LOW);
+    digitalWrite(LED_TRIG3,LOW);
+    digitalWrite(LED_TRIG4,LOW);
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(LOW_MAG_CAM_TRIG,LOW);
 }
@@ -47,9 +55,6 @@ void setCTDType() {
     sys.setCTDType();
 }
 
-void setPolling() {
-    sys.setPolling();
-}
 
 // wrapper for turning system on
 void turnOnCamera() {
@@ -61,6 +66,21 @@ void turnOnCamera() {
 
 
 void setup() {
+
+    // Set initial state of control pins
+    pinMode(CAMERA_POWER, OUTPUT);
+    pinMode(LASER_ENABLE, OUTPUT);
+    pinMode(LED_TRIG1, OUTPUT);
+    pinMode(LED_TRIG2, OUTPUT);
+    pinMode(LED_TRIG3, OUTPUT);
+    pinMode(LED_TRIG4, OUTPUT);
+
+    digitalWrite(CAMERA_POWER, LOW);
+    digitalWrite(LED_TRIG1, LOW);
+    digitalWrite(LED_TRIG2, LOW);
+    digitalWrite(LED_TRIG3, LOW);
+    digitalWrite(LED_TRIG4, LOW);
+    digitalWrite(LASER_ENABLE, LOW);
 
     // Start the debug port
     DEBUGPORT.begin(115200);
@@ -77,7 +97,6 @@ void setup() {
     // Add config parameters for system
     // IMPORTANT: add parameters at t he end of the list, otherwise you'll need to reflash the saved params in EEPROM before reading
     sys.cfg.addParam(LOGINT, "Time in ms between log events", "ms", 0, 100000, 250);
-    sys.cfg.addParam(POLLFREQ, "Rate of polling instruments", "Hz", 1, 50, 10, false, setPolling);
     sys.cfg.addParam(DEPTHCHECKINTERVAL, "Time in seconds between depth checks for testing ascent/descent", "s", 10, 300, 30);
     sys.cfg.addParam(DEPTHTHRESHOLD, "Depth change threshold to denote ascent or descent", "mm", 500, 10000, 1000);
     sys.cfg.addParam(LOCALECHO, "When > 0, echo serial input", "", 0, 1, 1);
@@ -88,7 +107,7 @@ void setup() {
     sys.cfg.addParam(HWPORT3BAUD, "Serial Port 3 baud rate", "baud", 9600, 115200, 115200);
     sys.cfg.addParam(STROBEDELAY, "Time between camera trigger and strobe trigger in us", "us", 5, 1000, 50, false, setFlashes);
     sys.cfg.addParam(FRAMERATE, "Camera frame rate in Hz", "Hz", 1, 30, 10, false, setTriggers);
-    sys.cfg.addParam(TRIGWIDTH, "Width of the camera trigger pulse in us", "us", 30, 10000, 100, false, setFlashes);
+    sys.cfg.addParam(TRIGWIDTH, "Width of the camera trigger pulse in us", "us", 30, 100000, 100, false, setFlashes);
     sys.cfg.addParam(LOWMAGCOLORFLASH, "Width of the low-mag white flash in us", "us", 1, 100000, 10, false, setFlashes);
     sys.cfg.addParam(LOWMAGREDFLASH, "Width of the low-mag far red flash in us", "us", 1, 100000, 10, false, setFlashes);
     sys.cfg.addParam(HIGHMAGCOLORFLASH, "Width of the high-mag white flash in us", "us", 1, 100000, 10, false, setFlashes);
@@ -117,8 +136,6 @@ void setup() {
     // Start the remaining serial ports
     HWPORT0.begin(sys.cfg.getInt(HWPORT0BAUD));
     HWPORT1.begin(sys.cfg.getInt(HWPORT1BAUD));
-    HWPORT2.begin(sys.cfg.getInt(HWPORT2BAUD));
-    HWPORT3.begin(sys.cfg.getInt(HWPORT3BAUD));
 
     // Config the SERCOM muxes AFTER starting the ports
     configSerialPins();
@@ -131,7 +148,6 @@ void setup() {
     // Setup flashes triggers and polling
     setFlashes();
     setTriggers();
-    setPolling();
     
 }
 

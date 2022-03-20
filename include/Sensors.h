@@ -3,7 +3,8 @@
 #define _SENSORS
 
 #define INA260_SYSTEM_ADDR 0x40
-#define INA260_STROBE_ADDR 0x41
+#define INA260_CAMERA_ADDR 0x44
+#define INA260_LED_ADDR 0x45
 
 #include <Arduino.h>
 #include <Adafruit_Sensor.h>
@@ -15,6 +16,7 @@
 Adafruit_BME280 _bme; // I2C
 Adafruit_INA260 _ina260_a = Adafruit_INA260();
 Adafruit_INA260 _ina260_b = Adafruit_INA260();
+Adafruit_INA260 _ina260_c = Adafruit_INA260();
 
 class Sensors {
 
@@ -44,14 +46,19 @@ class Sensors {
                 sensorsValid = false;
             }
 
-            if (!_ina260_b.begin(INA260_STROBE_ADDR)) {
+            if (!_ina260_b.begin(INA260_CAMERA_ADDR)) {
                 DEBUGPORT.println("Couldn't find INA260 B chip");
+                sensorsValid = false;
+            }
+
+            if (!_ina260_b.begin(INA260_LED_ADDR)) {
+                DEBUGPORT.println("Couldn't find INA260 C chip");
                 sensorsValid = false;
             }
             
             
             // default settings
-            int status = _bme.begin();  
+            int status = _bme.begin(BME280_ADDRESS_ALTERNATE);  
             // You can also pass in a Wire library object like &Wire2
             // status = bme.begin(0x76, &Wire2)
             if (!status) {
@@ -91,7 +98,6 @@ class Sensors {
             humidity = _bme.readHumidity();
             String output = "$BME280," + String(temperature) + "," + String(pressure) + "," + String(humidity);
             UI1.println(output);
-            UI2.println(output);
         }
 
         void printPower() {
@@ -103,7 +109,6 @@ class Sensors {
 
             String output = "$PWR_A," + String(current[0]) + "," + String(voltage[0]) + "," + String(power[0]);
             UI1.println(output);
-            UI2.println(output);
 
             current[1] = _ina260_b.readCurrent();
             voltage[1] = _ina260_b.readBusVoltage();
@@ -111,7 +116,6 @@ class Sensors {
 
             output = "$PWR_B," + String(current[1]) + "," + String(voltage[1]) + "," + String(power[1]);
             UI1.println(output);
-            UI2.println(output);
             
         }
 };
