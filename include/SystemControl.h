@@ -169,6 +169,22 @@ class SystemControl
                         if (cmd != NULL && strncmp_ci(cmd,STROBEALL,9) == 0) {
                             strobeAllLEDS();
                         }
+
+                        if (cmd != NULL && strncmp_ci(cmd,STROBE1,7) == 0) {
+                            strobe1();
+                        }
+                        
+                        if (cmd != NULL && strncmp_ci(cmd,STROBE2,7) == 0) {
+                            strobe2();
+                        }
+                        
+                        if (cmd != NULL && strncmp_ci(cmd,STROBE3,7) == 0) {
+                            strobe3();
+                        }
+                        
+                        if (cmd != NULL && strncmp_ci(cmd,STROBE4,7) == 0) {
+                            strobe4();
+                        }
                         
 
                         // Reset the buffer and print out the prompt
@@ -278,9 +294,15 @@ class SystemControl
 
         lastDepth = -10.0;
 
-        systemOkay = true;
         if (_flash.initialize()) {
             DEBUGPORT.println("Flash Init OK.");
+        }
+           
+        else {
+            DEBUGPORT.print("Init FAIL, expectedDeviceID(0x");
+            DEBUGPORT.print(_expectedDeviceID, HEX);
+            DEBUGPORT.print(") mismatched the read value: 0x");
+            DEBUGPORT.println(_flash.readDeviceId(), HEX);
         }
 
         systemOkay = true;
@@ -463,7 +485,7 @@ class SystemControl
             sprintf(output,"Temperature %0.2f C exceeds limit of %0.2f C", latestTemp, (float)cfg.getInt(TEMPLIMIT));
             printAllPorts(output);
             badEnv = true;
-            if (cameraOn) {
+            if (cameraOn && !pendingPowerOff) {
                 printAllPorts("Shuting down camera...");
                 sendShutdown();
             }
@@ -474,7 +496,7 @@ class SystemControl
             sprintf(output,"Humidity %0.2f %% exceeds limit of %0.2f %%", latestHum, (float)cfg.getInt(HUMLIMIT));
             printAllPorts(output);
             badEnv = true;
-            if (cameraOn) {
+            if (cameraOn && !pendingPowerOff) {
                 printAllPorts("Shuting down camera...");
                 sendShutdown();
             }
@@ -562,12 +584,32 @@ class SystemControl
         
         int trigwidth = cfg.getInt(TRIGWIDTH);
 
+        //Trig camera and delay
         digitalWrite(cameraTrig,HIGH);
-        delayMicroseconds(trigWidth/2);
+        if (trigWidth < 10000) {
+            delayMicroseconds(trigWidth/2);
+        }
+        else {
+            delay(trigWidth/1000/2);
+        }
+        
+        // Trig strobe and delay
         digitalWrite(ledTrig,HIGH);
-        delayMicroseconds(flashDuration);
+        if (flashDuration < 10000) {
+            delayMicroseconds(flashDuration);
+        }
+        else {
+            delay(flashDuration/1000);
+        }
         digitalWrite(ledTrig,LOW);
-        delayMicroseconds(trigWidth/2);
+        
+        // Lower camera line
+        if (trigWidth < 10000) {
+            delayMicroseconds(trigWidth/2);
+        }
+        else {
+            delay(trigWidth/1000/2);
+        }
         digitalWrite(cameraTrig,LOW);
     }
 
@@ -580,6 +622,22 @@ class SystemControl
         delay(frameDelay);
         strobeLED(CAM_TRIG, LED_TRIG3);
         delay(frameDelay);
+        strobeLED(CAM_TRIG, LED_TRIG4);
+    }
+
+    void strobe1() {
+        strobeLED(CAM_TRIG, LED_TRIG1);
+    }
+
+    void strobe2() {
+        strobeLED(CAM_TRIG, LED_TRIG2);
+    }
+
+    void strobe3() {
+        strobeLED(CAM_TRIG, LED_TRIG3);
+    }
+
+    void strobe4() {
         strobeLED(CAM_TRIG, LED_TRIG4);
     }
         

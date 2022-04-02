@@ -25,12 +25,18 @@ void setup() {
     pinMode(LED_TRIG2, OUTPUT);
     pinMode(LED_TRIG3, OUTPUT);
     pinMode(LED_TRIG4, OUTPUT);
+    pinMode(TRIG_0_0, OUTPUT);
+    pinMode(TRIG_1_0, OUTPUT);
+    pinMode(TRIG_4_0, OUTPUT);
 
-    digitalWrite(CAMERA_POWER, LOW);
+    digitalWrite(CAMERA_POWER, HIGH);
     digitalWrite(LED_TRIG1, LOW);
     digitalWrite(LED_TRIG2, LOW);
     digitalWrite(LED_TRIG3, LOW);
     digitalWrite(LED_TRIG4, LOW);
+    digitalWrite(TRIG_0_0, LOW);
+    digitalWrite(TRIG_1_0, LOW);
+    digitalWrite(TRIG_4_0, LOW);
     digitalWrite(LASER_ENABLE, LOW);
 
     // Start the debug port
@@ -54,11 +60,11 @@ void setup() {
     sys.cfg.addParam(HWPORT1BAUD, "Serial Port 1 baud rate", "baud", 9600, 115200, 115200);
     sys.cfg.addParam(STROBEDELAY, "Time between camera trigger and strobe trigger in us", "us", 5, 1000, 50, false);
     sys.cfg.addParam(FRAMERATE, "Camera frame rate in Hz", "Hz", 1, 30, 10, false);
-    sys.cfg.addParam(TRIGWIDTH, "Width of the camera trigger pulse in us", "us", 30, 100000, 100, false);
-    sys.cfg.addParam(FLASH1, "Width of LED type 1 flash in us", "us", 50, 100000, 1000, false);
-    sys.cfg.addParam(FLASH2, "Width of LED type 2 flash in us", "us", 50, 100000, 1000, false);
-    sys.cfg.addParam(FLASH3, "Width of LED type 3 flash in us", "us", 50, 100000, 1000, false);
-    sys.cfg.addParam(FLASH4, "Width of LED type 4 flash in us", "us", 50, 100000, 1000, false);
+    sys.cfg.addParam(TRIGWIDTH, "Width of the camera trigger pulse in us", "us", 30, 1000000, 100, false);
+    sys.cfg.addParam(FLASH1, "Width of LED type 1 flash in us", "us", 50, 1000000, 1000, false);
+    sys.cfg.addParam(FLASH2, "Width of LED type 2 flash in us", "us", 50, 1000000, 1000, false);
+    sys.cfg.addParam(FLASH3, "Width of LED type 3 flash in us", "us", 50, 1000000, 1000, false);
+    sys.cfg.addParam(FLASH4, "Width of LED type 4 flash in us", "us", 50, 1000000, 1000, false);
     sys.cfg.addParam(LOWVOLTAGE, "Voltage in mV where we shut down system", "mV", 10000, 14000, 11500);
     sys.cfg.addParam(STANDBY, "If voltage is low go into standby mode", "", 0, 1, 0);
     sys.cfg.addParam(CHECKHOURLY, "0 = check every minute, 1 = check every hour", "", 0, 1, 0);

@@ -354,7 +354,7 @@ class SystemConfig {
         void writeConfig() {
 
             // erase block first so we can write to it
-            //_flash.blockErase4K(0);
+            _flash.blockErase4K(0);
 
             for (int i = 0; i < nIntParams; i++) {
                 intParams[i]->writeToFlash();
