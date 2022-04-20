@@ -185,6 +185,27 @@ class SystemControl
                         if (cmd != NULL && strncmp_ci(cmd,STROBE4,7) == 0) {
                             strobe4();
                         }
+
+                        if (cmd != NULL && strncmp_ci(cmd,LASERON,7) == 0) {
+                            digitalWrite(LASER_ENABLE, HIGH);
+                        }
+                        if (cmd != NULL && strncmp_ci(cmd,LASEROFF,8) == 0) {
+                            digitalWrite(LASER_ENABLE, LOW);
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,INDCOLORON,10) == 0) {
+                            digitalWrite(INDCOLOR, HIGH);
+                        }
+                        if (cmd != NULL && strncmp_ci(cmd,INDCOLOROFF,11) == 0) {
+                            digitalWrite(INDCOLOR, LOW);
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,INDMACROON,10) == 0) {
+                            digitalWrite(INDMACRO, HIGH);
+                        }
+                        if (cmd != NULL && strncmp_ci(cmd,INDMACROOFF,11) == 0) {
+                            digitalWrite(INDMACRO, LOW);
+                        }
                         
 
                         // Reset the buffer and print out the prompt
@@ -582,7 +603,7 @@ class SystemControl
             flashDuration = cfg.getInt(FLASH4);
         }
         
-        int trigwidth = cfg.getInt(TRIGWIDTH);
+        int trigWidth = cfg.getInt(TRIGWIDTH);
 
         //Trig camera and delay
         digitalWrite(cameraTrig,HIGH);

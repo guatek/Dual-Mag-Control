@@ -16,6 +16,10 @@
 #define TRIG_1_0 8
 #define TRIG_0_0 4
 
+// Define indicator LEDs
+#define TRIG_1_1 9
+#define TRIG_4_1 A2 
+
 // Define LED Triggers
 #define LED_TRIG1 12
 #define LED_TRIG2 11
@@ -31,6 +35,8 @@
 // Define power supply controls
 #define LASER_ENABLE 2
 #define CAMERA_POWER 6
+#define INDCOLOR TRIG_1_1
+#define INDMACRO TRIG_4_1
 
 #define DEBUGPORT Serial
 #define HWPORT0 Serial0
@@ -82,6 +88,12 @@
 #define STROBE2 "STROBE2"
 #define STROBE3 "STROBE3"
 #define STROBE4 "STROBE4"
+#define INDCOLORON "INDCOLORON"
+#define INDCOLOROFF "INDCOLOROFF"
+#define INDMACROON "INDMACROON"
+#define INDMACROOFF "INDMACROOFF"
+#define LASERON "LASERON"
+#define LASEROFF "LASEROFF"
 
 
 #endif

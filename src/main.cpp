@@ -28,6 +28,8 @@ void setup() {
     pinMode(TRIG_0_0, OUTPUT);
     pinMode(TRIG_1_0, OUTPUT);
     pinMode(TRIG_4_0, OUTPUT);
+    pinMode(TRIG_1_1, OUTPUT);
+    pinMode(TRIG_4_1, OUTPUT);
 
     digitalWrite(CAMERA_POWER, HIGH);
     digitalWrite(LED_TRIG1, LOW);
@@ -37,6 +39,8 @@ void setup() {
     digitalWrite(TRIG_0_0, LOW);
     digitalWrite(TRIG_1_0, LOW);
     digitalWrite(TRIG_4_0, LOW);
+    digitalWrite(TRIG_1_1, LOW);
+    digitalWrite(TRIG_4_1, LOW);
     digitalWrite(LASER_ENABLE, LOW);
 
     // Start the debug port
