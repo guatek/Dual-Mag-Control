@@ -16,19 +16,17 @@ class TimeEvent {
     public:
     int uid, hour, min, sec, duration;
     int enabled;
-    int flashType, lowMag, highMag, frameRate;
+    int flash, frameRate;
     uint32_t startTime;
     bool running, completed;
 
-    TimeEvent(int uid, int hours, int min, int sec, int duration, int flashType, int lowMag, int highMag, int frameRate) {
+    TimeEvent(int uid, int hours, int min, int sec, int duration, int flash, int frameRate) {
         this->uid = uid;
         this->hour = hours;
         this->min = min;
         this->sec = sec;
         this->duration = duration;
-        this->flashType = flashType;
-        this->lowMag = lowMag;
-        this->highMag = highMag;
+        this->flash = flash;
         this->frameRate = frameRate;
         enabled = 1;
         running = false;
@@ -39,7 +37,7 @@ class TimeEvent {
     int sizeOnFlash() {
         int size = 0;
         size += sizeof(hour) + sizeof(min) + sizeof(sec) + sizeof(duration);
-        size += sizeof(flashType) + sizeof(lowMag) + sizeof(highMag) + sizeof(frameRate);
+        size += sizeof(flash) + sizeof(frameRate);
         return size;
     }
 
@@ -55,12 +53,8 @@ class TimeEvent {
             add += sizeof(sec);
             _f->writeBytes(add, (void*)&duration, (uint16_t)sizeof(duration));
             add += sizeof(duration);
-            _f->writeBytes(add, (void*)&flashType, (uint16_t)sizeof(flashType));
-            add += sizeof(flashType);
-            _f->writeBytes(add, (void*)&lowMag, (uint16_t)sizeof(lowMag));
-            add += sizeof(lowMag);
-            _f->writeBytes(add, (void*)&highMag, (uint16_t)sizeof(highMag));
-            add += sizeof(highMag);
+            _f->writeBytes(add, (void*)&flash, (uint16_t)sizeof(flash));
+            add += sizeof(flash);
             _f->writeBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
             add += sizeof(frameRate);
             _f->writeBytes(add, (void*)&enabled, (uint16_t)sizeof(enabled));
@@ -79,12 +73,8 @@ class TimeEvent {
             add += sizeof(sec);
             _f->readBytes(add, (void*)&duration, (uint16_t)sizeof(duration));
             add += sizeof(duration);
-            _f->readBytes(add, (void*)&flashType, (uint16_t)sizeof(flashType));
-            add += sizeof(flashType);
-            _f->readBytes(add, (void*)&lowMag, (uint16_t)sizeof(lowMag));
-            add += sizeof(lowMag);
-            _f->readBytes(add, (void*)&highMag, (uint16_t)sizeof(highMag));
-            add += sizeof(highMag);
+            _f->readBytes(add, (void*)&flash, (uint16_t)sizeof(flash));
+            add += sizeof(flash);
             _f->readBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
             add += sizeof(frameRate);
             _f->writeBytes(add, (void*)&enabled, (uint16_t)sizeof(enabled));
@@ -124,15 +114,8 @@ class TimeEvent {
         ui->print(duration);
         ui->println(" minutes");
         ui->print("Flash Type: ");
-        if (flashType)
-            ui->println("Far Red");
-        else
-            ui->println("White");
-        ui->print("Low Mag Duration: ");
-        ui->print(lowMag);
-        ui->println(" us");
-        ui->print("high Mag Duration: ");
-        ui->print(highMag);
+        ui->print("Flash Duration: ");
+        ui->print(flash);
         ui->println(" us");
         ui->print("Frame Rate: ");
         ui->print(frameRate);
@@ -179,7 +162,7 @@ class Scheduler {
 
     public:
 
-    int flashType, lowMagDuration, highMagDuration, frameRate;
+    int flash, frameRate;
     
     Scheduler(int uid, SPIFlash * _f) {
         this->baseUid = uid;
@@ -202,7 +185,7 @@ class Scheduler {
         // Read in saved time events
         if (nTimeEvents > 0) {
             for (int i = 0; i < nTimeEvents; i++) {
-                timeEvents[i] = new TimeEvent(this->uid, 0, 0, 0, 0, 0, 0, 0, 0); // dummy event to be filled from flash
+                timeEvents[i] = new TimeEvent(this->uid, 0, 0, 0, 0, 0, 0); // dummy event to be filled from flash
                 timeEvents[i]->readFromFlash(_f);
                 uid += timeEvents[i]->sizeOnFlash();
                 timeEvents[i]->printEvent(&DEBUGPORT);
@@ -212,55 +195,21 @@ class Scheduler {
     }
 
     bool timeEventUI(Stream * ui, SystemConfig * cfg, int cmdTimeout) {
-        int flashType, lowMagDuration, highMagDuration, frameRate; 
+        int flash, frameRate; 
         bool result;
         char exitCode = 27;
         ui->println("Create New Time Event:");
         if (confirm(ui, "Use custom camera config? [y,N]: ", cmdTimeout)) {
             
-            
-            // Flash Type
-            result = cfg->readIntFromUI(ui, FLASHTYPE, &flashType, exitCode, cmdTimeout);
-            if (!result)
-                return false;
-
-            // Flash Duration
-            if (flashType == 0) {
-                // Color
-                result = cfg->readIntFromUI(ui, LOWMAGCOLORFLASH, &lowMagDuration, exitCode, cmdTimeout);
+            result = cfg->readIntFromUI(ui, FLASH, &flash, exitCode, cmdTimeout);
                 if (!result) 
                     return false;
-                result = cfg->readIntFromUI(ui, HIGHMAGCOLORFLASH, &highMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-            }
-            else {
-                // Far Red
-                result = cfg->readIntFromUI(ui, LOWMAGREDFLASH, &lowMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-                result = cfg->readIntFromUI(ui, HIGHMAGREDFLASH, &highMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-            }
             
             // Frame rate
             result = cfg->readIntFromUI(ui, FRAMERATE, &frameRate, exitCode, cmdTimeout);
             if (!result)
                 return false;
 
-        }
-        else {
-            flashType = cfg->getInt(FLASHTYPE);
-            if (flashType == 0) {
-                lowMagDuration = cfg->getInt(LOWMAGCOLORFLASH);
-                highMagDuration = cfg->getInt(HIGHMAGCOLORFLASH);
-            }
-            else {
-                lowMagDuration = cfg->getInt(LOWMAGREDFLASH);
-                highMagDuration = cfg->getInt(HIGHMAGREDFLASH);
-            }
-            frameRate = cfg->getInt(FRAMERATE);
         }
 
         int hour, minute, second, duration;
@@ -288,15 +237,15 @@ class Scheduler {
 
         // If we got here we have a valid set of event params so we should create one.
         ui->println("Creating Event:");
-        addTimeEvent(ui, hour, minute, second, duration, flashType, lowMagDuration, highMagDuration, frameRate);
+        addTimeEvent(ui, hour, minute, second, duration, flash, frameRate);
         
         return true;
 
     }
 
-    bool addTimeEvent(Stream * ui, int hour, int min, int sec, int duration, int flashType, int lowMag, int highMag, int frameRate) {
+    bool addTimeEvent(Stream * ui, int hour, int min, int sec, int duration, int flash, int frameRate) {
         if (nTimeEvents < MAX_TIME_EVENTS) {
-            timeEvents[nTimeEvents] = new TimeEvent(uid, hour, min, sec, duration, flashType, lowMag, highMag, frameRate);
+            timeEvents[nTimeEvents] = new TimeEvent(uid, hour, min, sec, duration, flash, frameRate);
             timeEvents[nTimeEvents]->printEvent(ui);
             uid += timeEvents[nTimeEvents]->sizeOnFlash();
             nTimeEvents += 1;
@@ -345,9 +294,7 @@ class Scheduler {
         for (int i = 0; i < nTimeEvents; i++) {
             if (timeEvents[i]->checkStart(rtc)) {
                 // store current camera config and set from event
-                flashType = timeEvents[i]->flashType;
-                lowMagDuration = timeEvents[i]->lowMag;
-                highMagDuration = timeEvents[i]->highMag;
+                flash = timeEvents[i]->flash;
                 frameRate = timeEvents[i]->frameRate;
                 return 1;
             }

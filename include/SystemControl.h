@@ -19,8 +19,8 @@
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "DMCTRL > "
-#define LOG_PROMPT "$DMCTRL"
+#define PROMPT "SCCTRL > "
+#define LOG_PROMPT "$SCCTRL"
 #define CMD_BUFFER_SIZE 128
 
 #define STROBE_POWER 7
@@ -90,7 +90,7 @@ class SystemControl
     unsigned long envTimer;
     unsigned long voltageTimer;
 
-    int lastFlashType, lastLowMagDuration, lastHighMagDuration, lastFrameRate;
+    int lastStrobeDuration, lastFrameRate;
 
     MovingAverage<float> avgVoltage;
     MovingAverage<float> avgTemp;
@@ -296,8 +296,7 @@ class SystemControl
 
     SystemConfig cfg;
     int trigWidth;
-    int lowMagStrobeDuration;
-    int highMagStrobeDuration;
+    int strobeDuration;
     int flashType;
     int frameRate;
   
@@ -372,29 +371,13 @@ class SystemControl
 
     void storeLastFlashConfig() {
         // Set last config in case we call end event before start event
-        lastFlashType = cfg.getInt(FLASHTYPE);
         lastFrameRate = cfg.getInt(FRAMERATE);
-        if (lastFlashType == 1) {        
-            lastLowMagDuration = cfg.getInt(LOWMAGREDFLASH);
-            lastHighMagDuration = cfg.getInt(HIGHMAGREDFLASH);
-        }
-        else {
-            lastLowMagDuration = cfg.getInt(LOWMAGCOLORFLASH);
-            lastHighMagDuration = cfg.getInt(HIGHMAGCOLORFLASH);
-        }
+        strobeDuration = cfg.getInt(FLASH);
     }
 
     void restoreLastFlashConfig() {
-        cfg.set(FLASHTYPE, lastFlashType);
         cfg.set(FRAMERATE, lastFrameRate);
-        if (lastFlashType == 1) {        
-            cfg.set(LOWMAGREDFLASH, lastLowMagDuration);
-            cfg.set(HIGHMAGREDFLASH, lastHighMagDuration);
-        }
-        else {
-            cfg.set(LOWMAGCOLORFLASH, lastLowMagDuration);
-            cfg.set(HIGHMAGCOLORFLASH, lastHighMagDuration);
-        }
+        cfg.set(FLASH, strobeDuration);
     }
 
     void loadScheduler() {
@@ -436,10 +419,11 @@ class SystemControl
         }
     }
 
-    void getTimeString(char * timeString) {
+    unsigned long getTimeString(char * timeString) {
         
-        sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
         unsigned long unixtime;
+
+        sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
         if (ds3231Okay) {
             DateTime now = _ds3231.now();
             unixtime = now.unixtime();
@@ -456,6 +440,9 @@ class SystemControl
                 _zerortc.getSeconds()
             );
         }
+
+        return unixtime;
+
     }
 
     bool update() {
@@ -466,89 +453,12 @@ class SystemControl
         // Build log string and send to UIs
         char output[256];
 
-        float c = -1.0;
-        float t = -1.0;
-        float d = -1.0;
-        currentDepth = d;
-
-        uint32_t unixtime; 
-
         char timeString[64];
         getTimeString(timeString);
 
-        if (cfg.getInt(ECHORBR) == 1)
-            _rbr.setEchoData(true);
-        else
-            _rbr.setEchoData(false);
-
-        if (_rbr.haveNewData()) {
-            c = _rbr.conductivity();
-            t = _rbr.temperature();
-            d = _rbr.pressure();
-            currentDepth = d;
-            if (cfg.getInt(USERBRCLOCK) && _zerortc.getEpoch() - clockSyncTimer > 60) {
-                char timeBuffer[64];
-                _rbr.getTimeString(timeBuffer);
-                this->setTime(timeBuffer, &DEBUGPORT);
-                clockSyncTimer = _zerortc.getEpoch();
-            }
-            _rbr.invalidateData();
-
-            bool depthCheckOkay = false;
-            if (lastDepth > -1.0 && fabs(currentDepth - lastDepth) < 20) {
-                depthCheckOkay = true;
-            }
-
-            // Check state (float up, down ratchet)
-            if (unixtime - lastDepthCheck > (unsigned int)cfg.getInt(DEPTHCHECKINTERVAL)) {
-                float delta_depth = d - lastDepth;
-                if (depthCheckOkay && (state == -1 || state == 0) && delta_depth > ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
-                    state = 1; // ascent to descent
-                }
-                if (depthCheckOkay && (state == 1 || state == 0)  && delta_depth < ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
-                    state = -1; // descent to ascent
-                }
-                lastDepthCheck = unixtime;
-                lastDepth = d;
-            }
-
-            // Check depth limits if requested
-            bool depthValid = true;
-            if (depthCheckOkay && cfg.getInt(MINDEPTH) > -1000 && cfg.getInt(MAXDEPTH) > -1000) {
-                
-                // Set depth invalid until we confirm it's within the limits
-                depthValid = false;
-
-                // Note that the min/max depth param is in mm and currentDepth is in dBar
-                // multiply current depth by 1000 to get approximately depth in mm.
-                if ((cfg.getInt(MINDEPTH) < currentDepth*1000) && (cfg.getInt(MAXDEPTH) > currentDepth*1000)) {
-                    depthValid = true;
-                }
-            }
-
-            if (cfg.getInt(PROFILEMODE) == 0) {
-                if (state == 1 || !depthValid) {
-                    if (cameraOn && !pendingPowerOff) {
-                        sendShutdown();
-                    }
-                }
-                if (state == -1 && depthValid) {
-                    if (!cameraOn && !pendingPowerOn) {
-                        pendingPowerOn = true;
-                        pendingPowerOnTimer = _zerortc.getEpoch();
-                    }
-                }
-            }
-            else if (!cameraOn && cfg.getInt(PROFILEMODE) == 1 && depthValid) {
-                pendingPowerOn = true;
-                pendingPowerOnTimer = _zerortc.getEpoch();
-            }
-        }
-
-
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d",
 
             LOG_PROMPT,
             timeString,
@@ -559,14 +469,9 @@ class SystemControl
             _sensors.voltage[0] / 1000, // In Volts
             _sensors.power[0] / 1000, // in W
             _sensors.power[1] / 1000, // in W
-            c,
-            t,
-            d,
             state,
             cameraOn,
-            flashType,
-            lowMagStrobeDuration,
-            highMagStrobeDuration,
+            strobeDuration,
             frameRate
             
         );
@@ -594,14 +499,12 @@ class SystemControl
             readInput(&DEBUGPORT);
         }
         if (UI1.available() > 0) {
-            _rbr.disableEcho();
             readInput(&UI1);
         }
         if (UI2.available() > 0) {
-            _rbr.disableEcho();
             readInput(&UI2);
         }
-        _rbr.setEchoData(cfg.getInt(ECHORBR) == 1);
+
     }
 
     void printAllPorts(const char output[]) {
@@ -629,7 +532,7 @@ class SystemControl
         // turn on power under the following conditions:
         // (1) another event requested power on
         // (2) profile mode is set to always on
-        if (pendingPowerOn || (!cameraOn && cfg.getInt(PROFILEMODE) == (unsigned int)1)) {
+        if (pendingPowerOn || (!cameraOn && cfg.getInt(OPMODE) == (unsigned int)1)) {
             printAllPorts("Powering ON camera...");
             turnOnCamera();
             pendingPowerOn = false;
@@ -734,16 +637,8 @@ class SystemControl
         if (result == 1 && !pendingPowerOn && !cameraOn) {
             // Store the current settings and set new ones
             storeLastFlashConfig();
-            cfg.set(FLASHTYPE, sch->flashType);
             cfg.set(FRAMERATE, sch->frameRate);
-            if (sch->flashType == 1) {
-                cfg.set(LOWMAGREDFLASH, sch->lowMagDuration);
-                cfg.set(HIGHMAGREDFLASH, sch->highMagDuration);
-            }
-            else {
-                cfg.set(LOWMAGCOLORFLASH, sch->lowMagDuration);
-                cfg.set(HIGHMAGCOLORFLASH, sch->highMagDuration);
-            }
+            cfg.set(FLASH, sch->flash);
             configureFlashDurations();
             setTriggers();
             pendingPowerOn = true;
@@ -770,31 +665,12 @@ class SystemControl
     void configureFlashDurations() {
         // Set global delays for ISRs
         trigWidth = cfg.getInt(TRIGWIDTH);
-        flashType = cfg.getInt(FLASHTYPE);
-        if (flashType == 0) {
-            digitalWrite(FLASH_TYPE_PIN,HIGH);
-            lowMagStrobeDuration = cfg.getInt(LOWMAGCOLORFLASH);
-            highMagStrobeDuration = cfg.getInt(HIGHMAGCOLORFLASH);
-        }
-        else {
-            digitalWrite(FLASH_TYPE_PIN,LOW);
-            lowMagStrobeDuration = cfg.getInt(LOWMAGREDFLASH);
-            highMagStrobeDuration = cfg.getInt(HIGHMAGREDFLASH);
-        }
+        strobeDuration = cfg.getInt(FLASH);
     }
 
     void setTriggers() {
         frameRate = cfg.getInt(FRAMERATE); 
         configTriggers(cfg.getInt(FRAMERATE));
-    }
-
-    void setPolling() {
-        pollingEnable = true;
-        configPolling(cfg.getInt(POLLFREQ), pollInstruments);
-    }
-
-    void setCTDType() {
-        instrumentType = cfg.getInt(CTDTYPE);
     }
         
 };
