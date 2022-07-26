@@ -24,7 +24,7 @@
 #define CMD_BUFFER_SIZE 128
 
 #define STROBE_POWER 7
-#define CAMERA_POWER 6
+#define CAMERA_POWER 22
 
 // Global Sensors
 Sensors _sensors;
@@ -187,6 +187,16 @@ class SystemControl
                         }
 
                         if (cmd != NULL && strncmp_ci(cmd,CAMERAOFF,9) == 0) {
+                            if (confirm(in, "Are you sure you want to power OFF camera ? [y/N]: ", cfg.getInt(CMDTIMEOUT)))
+                                turnOffCamera();
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,STROBEON,8) == 0) {
+                            if (confirm(in, "Are you sure you want to power ON camera ? [y/N]: ", cfg.getInt(CMDTIMEOUT)))
+                                turnOnCamera();
+                        }
+
+                        if (cmd != NULL && strncmp_ci(cmd,STROBEOFF,9) == 0) {
                             if (confirm(in, "Are you sure you want to power OFF camera ? [y/N]: ", cfg.getInt(CMDTIMEOUT)))
                                 turnOffCamera();
                         }
@@ -405,7 +415,6 @@ class SystemControl
             DEBUGPORT.println("Turning ON camera power...");
             cameraOn = true;
             digitalWrite(CAMERA_POWER, HIGH);
-            digitalWrite(STROBE_POWER, LOW);
             lastPowerOnTime = _zerortc.getEpoch();
             return true;
         }
@@ -419,7 +428,6 @@ class SystemControl
             DEBUGPORT.println("Turning OFF camera power...");
             cameraOn = false;
             digitalWrite(CAMERA_POWER, LOW);
-            digitalWrite(STROBE_POWER, HIGH);
             lastPowerOffTime = _zerortc.getEpoch();
             return true;
         }
