@@ -62,6 +62,18 @@ void turnOnCamera() {
 
 void setup() {
 
+    //Turn off strobe and camera power
+    pinMode(CAMERA_POWER, OUTPUT);
+    pinMode(STROBE_POWER, OUTPUT);
+    pinMode(AUX_5V_POWER, OUTPUT);
+
+    digitalWrite(CAMERA_POWER, LOW);
+    digitalWrite(STROBE_POWER, HIGH);
+    digitalWrite(AUX_5V_POWER, LOW);
+
+    // Setup Sd Card Pins
+    //pinMode(SDCARD_DETECT, INPUT_PULLUP);
+
     // Start the debug port
     DEBUGPORT.begin(115200);
 

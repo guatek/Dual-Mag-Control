@@ -42,6 +42,11 @@ void SERCOM1_Handler()
   Serial3.IrqHandler();
 }
 
+// Define power control
+#define STROBE_POWER 7
+#define CAMERA_POWER 6
+#define AUX_5V_POWER 38
+
 // Define GPIOs
 #define GPIO_1_IO 42
 #define GPIO_2_IO SWIO
@@ -123,6 +128,7 @@ void SERCOM1_Handler()
 #define NEWEVENT "NEWEVENT"
 #define PRINTEVENTS "PRINTEVENTS"
 #define CLEAREVENTS "CLEAREVENTS"
+#define GOTOSLEEP "GOTOSLEEP"
 
 
 #endif
