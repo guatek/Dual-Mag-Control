@@ -45,7 +45,13 @@ class Sensors {
             }
             else {
                 DEBUGPORT.println("System INA260 OK");
+                // set the number of samples to average
+                _ina260_a.setAveragingCount(INA260_COUNT_256);
+                // set the time over which to measure the current and bus voltage
+                _ina260_a.setVoltageConversionTime(INA260_TIME_558_us);
+                _ina260_a.setCurrentConversionTime(INA260_TIME_558_us);
             }
+
 
             if (!_ina260_b.begin(INA260_STROBE_ADDR)) {
                 DEBUGPORT.println("Couldn't find INA260 B chip");
@@ -53,6 +59,10 @@ class Sensors {
             }
             else {
                 DEBUGPORT.println("Strobe INA260 OK");
+                _ina260_b.setAveragingCount(INA260_COUNT_256);
+                // set the time over which to measure the current and bus voltage
+                _ina260_b.setVoltageConversionTime(INA260_TIME_558_us);
+                _ina260_b.setCurrentConversionTime(INA260_TIME_558_us);
             }
             
             
