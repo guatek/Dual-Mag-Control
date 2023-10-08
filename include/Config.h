@@ -75,9 +75,9 @@ void SERCOM1_Handler()
 #define HWPORT2 Serial2
 #define HWPORT3 Serial3
 
-#define UI1 HWPORT0
+#define UI1 HWPORT1
 #define UI2 HWPORT2
-#define JETSONPORT HWPORT1
+#define JETSONPORT HWPORT0
 #define RBRPORT HWPORT3
 
 // Define Config Settings
