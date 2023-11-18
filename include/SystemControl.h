@@ -748,7 +748,7 @@ class SystemControl
     void sendShutdown() {
         if (cameraOn) {
             DEBUGPORT.println("Sending to Jetson: sudo shutdown -h now");
-            JETSONPORT.println("sudo shutdown -h now\n");
+            JETSONPORT.println("pkill -TERM PlanktonCam; sleep 4; sudo shutdown -h now\n");
             pendingPowerOff = true;
             pendingPowerOffTimer = _zerortc.getEpoch();
         }
