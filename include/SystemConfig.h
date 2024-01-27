@@ -45,22 +45,22 @@ class ConfigParam {
             this->callback = callback;
         }
 
-        void writeToFlash() {
+        void writeToFlash(Stream * in) {
             _flash.writeBytes(uid, (void*)&val, (uint16_t)sizeof(T));
-            DEBUGPORT.print("Write value [@");
-            DEBUGPORT.print(uid);
-            DEBUGPORT.print("]: ");
-            DEBUGPORT.println(val);
+            in->print("Write value [@");
+            in->print(uid);
+            in->print("]: ");
+            in->println(val);
         }
 
-        void readFromFlash() {
+        void readFromFlash(Stream * in) {
             T newVal;
             _flash.readBytes(uid, (void*)&newVal, (uint16_t)sizeof(T));
             setVal(newVal);
-            DEBUGPORT.print("Read value [@");
-            DEBUGPORT.print(uid);
-            DEBUGPORT.print("]: ");
-            DEBUGPORT.println(val);
+            in->print("Read value [@");
+            in->print(uid);
+            in->print("]: ");
+            in->println(val);
         }
 
         bool readFromCLI(Stream * in, T * val, char exitChar, unsigned int cmdTimeout) {
@@ -351,25 +351,25 @@ class SystemConfig {
 
         }
 
-        void writeConfig() {
+        void writeConfig(Stream * in) {
 
             // erase block first so we can write to it
             _flash.blockErase4K(0);
 
             for (int i = 0; i < nIntParams; i++) {
-                intParams[i]->writeToFlash();
+                intParams[i]->writeToFlash(in);
             }
             for (int i = 0; i < nFloatParams; i++) {
-                floatParams[i]->writeToFlash();
+                floatParams[i]->writeToFlash(in);
             }
         }
 
-        void readConfig() {
+        void readConfig(Stream * in) {
             for (int i = 0; i < nIntParams; i++) {
-                intParams[i]->readFromFlash();
+                intParams[i]->readFromFlash(in);
             }
             for (int i = 0; i < nFloatParams; i++) {
-                floatParams[i]->readFromFlash();
+                floatParams[i]->readFromFlash(in);
             }
         }
 };

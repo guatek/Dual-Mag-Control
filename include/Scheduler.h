@@ -308,14 +308,14 @@ class Scheduler {
         }
     }
 
-    void writeToFlash() {
+    void writeToFlash(Stream * in) {
         // Read in saved time events
         // Write the number of events on flash
         _f->writeBytes(baseUid, (void*)&nTimeEvents, sizeof(nTimeEvents));
         for (int i = 0; i < nTimeEvents; i++) {
-            DEBUGPORT.print("writing time event: ");
-            DEBUGPORT.print(timeEvents[i]->uid);
-            DEBUGPORT.println(" to flash...");
+            in->print("writing time event: ");
+            in->print(timeEvents[i]->uid);
+            in->println(" to flash...");
             timeEvents[i]->writeToFlash(_f);
         } 
     }

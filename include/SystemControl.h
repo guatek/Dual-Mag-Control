@@ -172,12 +172,14 @@ class SystemControl
 
                         // WRITECONFIG (save the current config to EEPROM)
                         else if (cmd != NULL && strncmp_ci(cmd,WRITECONFIG, 11) == 0) {
-                            writeConfig();
+                            writeConfig(in);
+                            printAllPorts("Flash write completed.\n");
                         }
 
                         // READCONFIG (read the current config to EEPROM)
                         else if (cmd != NULL && strncmp_ci(cmd,READCONFIG, 10) == 0) {
-                            readConfig();
+                            readConfig(in);
+                            printAllPorts("Flash read completed.\n");
                         }
 
                         else if (cmd != NULL && strncmp_ci(cmd,CAMERAON,8) == 0) {
@@ -562,16 +564,16 @@ class SystemControl
         return true;
     }
 
-    void writeConfig() {
+    void writeConfig(Stream * in) {
         if (systemOkay) {
-            cfg.writeConfig();
-            sch->writeToFlash();
+            cfg.writeConfig(in);
+            sch->writeToFlash(in);
         }
     }
 
-    void readConfig() {
+    void readConfig(Stream * in) {
         if (systemOkay)
-            cfg.readConfig();
+            cfg.readConfig(in);
     }
 
     void checkInput() {

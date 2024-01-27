@@ -136,7 +136,7 @@ void setup() {
     configSerialPins();
 
     // Load the last config from EEPROM
-    sys.readConfig();
+    sys.readConfig(&DEBUGPORT);
 
     sys.loadScheduler();
 
