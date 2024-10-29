@@ -426,14 +426,11 @@ class SystemControl
     void getTimeString(char * timeString) {
         
         sprintf(timeString,"%s","YYYY-MM-DD hh:mm:ss");
-        unsigned long unixtime;
         if (ds3231Okay) {
             DateTime now = _ds3231.now();
-            unixtime = now.unixtime();
             now.toString(timeString);
         }
         else {
-            unixtime = _zerortc.getEpoch();
             sprintf(timeString, "%04d-%02d-%02d %02d:%02d:%02d", 
                 _zerortc.getYear(),
                 _zerortc.getMonth(),
@@ -453,12 +450,8 @@ class SystemControl
         // Build log string and send to UIs
         char output[256];
 
-        float c = -1.0;
-        float t = -1.0;
         float d = -1.0;
         currentDepth = d;
-
-        uint32_t unixtime; 
 
         char timeString[64];
         getTimeString(timeString);
@@ -468,74 +461,10 @@ class SystemControl
         else
             _rbr.setEchoData(false);
 
-        if (_rbr.haveNewData()) {
-            c = _rbr.conductivity();
-            t = _rbr.temperature();
-            d = _rbr.pressure();
-            currentDepth = d;
-            if (cfg.getInt(USERBRCLOCK) && _zerortc.getEpoch() - clockSyncTimer > 60) {
-                char timeBuffer[64];
-                _rbr.getTimeString(timeBuffer);
-                this->setTime(timeBuffer, &DEBUGPORT);
-                clockSyncTimer = _zerortc.getEpoch();
-            }
-            _rbr.invalidateData();
-
-            bool depthCheckOkay = false;
-            if (lastDepth > -1.0 && fabs(currentDepth - lastDepth) < 20) {
-                depthCheckOkay = true;
-            }
-
-            // Check state (float up, down ratchet)
-            if (unixtime - lastDepthCheck > (unsigned int)cfg.getInt(DEPTHCHECKINTERVAL)) {
-                float delta_depth = d - lastDepth;
-                if (depthCheckOkay && (state == -1 || state == 0) && delta_depth > ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
-                    state = 1; // ascent to descent
-                }
-                if (depthCheckOkay && (state == 1 || state == 0)  && delta_depth < ((float)cfg.getInt(DEPTHTHRESHOLD))/1000) {
-                    state = -1; // descent to ascent
-                }
-                lastDepthCheck = unixtime;
-                lastDepth = d;
-            }
-
-            // Check depth limits if requested
-            bool depthValid = true;
-            if (depthCheckOkay && cfg.getInt(MINDEPTH) > -1000 && cfg.getInt(MAXDEPTH) > -1000) {
-                
-                // Set depth invalid until we confirm it's within the limits
-                depthValid = false;
-
-                // Note that the min/max depth param is in mm and currentDepth is in dBar
-                // multiply current depth by 1000 to get approximately depth in mm.
-                if ((cfg.getInt(MINDEPTH) < currentDepth*1000) && (cfg.getInt(MAXDEPTH) > currentDepth*1000)) {
-                    depthValid = true;
-                }
-            }
-
-            if (cfg.getInt(PROFILEMODE) == 0) {
-                if (state == 1 || !depthValid) {
-                    if (cameraOn && !pendingPowerOff) {
-                        sendShutdown();
-                    }
-                }
-                if (state == -1 && depthValid) {
-                    if (!cameraOn && !pendingPowerOn) {
-                        pendingPowerOn = true;
-                        pendingPowerOnTimer = _zerortc.getEpoch();
-                    }
-                }
-            }
-            else if (!cameraOn && cfg.getInt(PROFILEMODE) == 1 && depthValid) {
-                pendingPowerOn = true;
-                pendingPowerOnTimer = _zerortc.getEpoch();
-            }
-        }
-
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.3f,%0.3f,%0.3f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d,%d,%d",
 
             LOG_PROMPT,
             timeString,
@@ -544,11 +473,13 @@ class SystemControl
             _sensors.pressure / 1000, // in kPa
             _sensors.humidity, // in %
             _sensors.voltage[0] / 1000, // In Volts
+            _sensors.voltage[1] / 1000, // In Volts
             _sensors.power[0] / 1000, // in W
             _sensors.power[1] / 1000, // in W
-            c,
-            t,
-            d,
+            _sensors.power[2] / 1000, // in W
+            _sensors.power[3] / 1000, // in W
+            _sensors.power[4] / 1000, // in W
+            _sensors.power[5] / 1000, // in W
             state,
             cameraOn,
             flashType,

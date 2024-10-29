@@ -58,7 +58,7 @@ bool confirm(Stream * in, const char * prompt, unsigned int cmdTimeout) {
     return false;
 }
 
-int strncmp_ci(const char * input, const char * command, int n) {
+int strncmp_ci(const char * input, const char * command, unsigned int n) {
     
     // string and command must match in length
     if (strlen(input) < n)
