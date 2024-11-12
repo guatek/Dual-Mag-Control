@@ -63,13 +63,17 @@ void turnOnCamera() {
 void setup() {
 
     //Turn off strobe and camera power
-    pinMode(CAMERA_POWER, OUTPUT);
-    pinMode(STROBE_POWER, OUTPUT);
-    pinMode(AUX_5V_POWER, OUTPUT);
 
-    digitalWrite(CAMERA_POWER, LOW);
-    digitalWrite(STROBE_POWER, HIGH);
-    digitalWrite(AUX_5V_POWER, LOW);
+    pinMode(V12_ENABLE, OUTPUT);
+    pinMode(LED1_ENABLE, OUTPUT);
+    pinMode(LED2_ENABLE, OUTPUT);
+    pinMode(LED3_ENABLE, OUTPUT);
+
+
+    digitalWrite(V12_ENABLE, LOW);
+    digitalWrite(LED1_ENABLE, LOW);
+    digitalWrite(LED2_ENABLE, LOW);
+    digitalWrite(LED3_ENABLE, LOW);
 
     // Setup Sd Card Pins
     //pinMode(SDCARD_DETECT, INPUT_PULLUP);
@@ -124,7 +128,7 @@ void setup() {
     sys.cfg.addParam(CTDTYPE, "0 = RBR, 1 = SBE39, The type of CTD data to parse","",0,0,1, false, setCTDType);
 
     // configure watchdog timer if enabled
-    sys.configWatchdog();
+   // sys.configWatchdog();
 
     // Start the remaining serial ports
     HWPORT0.begin(sys.cfg.getInt(HWPORT0BAUD));

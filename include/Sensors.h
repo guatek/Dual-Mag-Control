@@ -2,14 +2,15 @@
 
 #define _SENSORS
 
+#define N_POWER_METERS 7
+
 #define INA260_PWR1_ADDR 0x40
 #define INA260_PWR2_ADDR 0x45
 #define INA260_5V_ADDR 0x41
 #define INA260_LED1_ADDR 0x42
 #define INA260_LED2_ADDR 0x43
 #define INA260_LED3_ADDR 0x44
-
-#define INA260_STROBE_ADDR 0x41
+#define INA260_12V_ADDR 0x48
 
 #include <Arduino.h>
 #include <Adafruit_Sensor.h>
@@ -19,12 +20,6 @@
 #include "Config.h"
 
 Adafruit_BME280 _bme; // I2C
-Adafruit_INA260 _ina260_a = Adafruit_INA260();
-Adafruit_INA260 _ina260_b = Adafruit_INA260();
-Adafruit_INA260 _ina260_c = Adafruit_INA260();
-Adafruit_INA260 _ina260_d = Adafruit_INA260();
-Adafruit_INA260 _ina260_e = Adafruit_INA260();
-Adafruit_INA260 _ina260_f = Adafruit_INA260();
 
 class Sensors {
 
@@ -33,98 +28,52 @@ class Sensors {
    
     public:
 
-        float voltage[6];
-        float current[6];
-        float power[6];
+        int nPowerMeters;
+        unsigned char addresses[N_POWER_METERS];
+        float voltage[N_POWER_METERS];
+        float current[N_POWER_METERS];
+        float power[N_POWER_METERS];
+        Adafruit_INA260 * meters[N_POWER_METERS];
         float temperature;
         float pressure;
         float humidity;
 
         Sensors() {
+
             sensorsValid = false;
+            nPowerMeters = N_POWER_METERS;
+            addresses[0] = INA260_PWR1_ADDR;
+            addresses[1] = INA260_PWR2_ADDR;
+            addresses[2] = INA260_5V_ADDR;
+            addresses[3] = INA260_LED1_ADDR;
+            addresses[4] = INA260_LED2_ADDR;
+            addresses[5] = INA260_LED3_ADDR;
+            addresses[6] = INA260_12V_ADDR;
+
 
         }
 
         bool begin() {
-
-            sensorsValid = true;
             
-            if (!_ina260_a.begin(INA260_PWR1_ADDR)) {
-                DEBUGPORT.println("Couldn't find INA260 PWR1 Chip");
-                sensorsValid = false;
-            }
-            else {
-                DEBUGPORT.println("INA260 PWR1 Chip OK");
-                // set the number of samples to average
-                _ina260_a.setAveragingCount(INA260_COUNT_256);
-                // set the time over which to measure the current and bus voltage
-                _ina260_a.setVoltageConversionTime(INA260_TIME_558_us);
-                _ina260_a.setCurrentConversionTime(INA260_TIME_558_us);
-            }
+            sensorsValid = true;
 
-            if (!_ina260_b.begin(INA260_PWR2_ADDR)) {
-                DEBUGPORT.println("Couldn't find INA260 PWR2 Chip");
-                sensorsValid = false;
-            }
-            else {
-                DEBUGPORT.println("INA260 PWR2 Chip OK");
-                // set the number of samples to average
-                _ina260_b.setAveragingCount(INA260_COUNT_256);
-                // set the time over which to measure the current and bus voltage
-                _ina260_b.setVoltageConversionTime(INA260_TIME_558_us);
-                _ina260_b.setCurrentConversionTime(INA260_TIME_558_us);
-            }
-
-            if (!_ina260_c.begin(INA260_5V_ADDR)) {
-                DEBUGPORT.println("Couldn't find INA260 5V Chip");
-                sensorsValid = false;
-            }
-            else {
-                DEBUGPORT.println("INA260 5V Chip OK");
-                // set the number of samples to average
-                _ina260_c.setAveragingCount(INA260_COUNT_256);
-                // set the time over which to measure the current and bus voltage
-                _ina260_c.setVoltageConversionTime(INA260_TIME_558_us);
-                _ina260_c.setCurrentConversionTime(INA260_TIME_558_us);
-            }
-
-            if (!_ina260_d.begin(INA260_LED1_ADDR)) {
-                DEBUGPORT.println("Couldn't find INA260 LED1 Chip");
-                sensorsValid = false;
-            }
-            else {
-                DEBUGPORT.println("INA260 LED1 Chip OK");
-                // set the number of samples to average
-                _ina260_d.setAveragingCount(INA260_COUNT_256);
-                // set the time over which to measure the current and bus voltage
-                _ina260_d.setVoltageConversionTime(INA260_TIME_558_us);
-                _ina260_d.setCurrentConversionTime(INA260_TIME_558_us);
-            }
-
-            if (!_ina260_e.begin(INA260_LED2_ADDR)) {
-                DEBUGPORT.println("Couldn't find INA260 LED2 Chip");
-                sensorsValid = false;
-            }
-            else {
-                DEBUGPORT.println("INA260 LED2 Chip OK");
-                // set the number of samples to average
-                _ina260_e.setAveragingCount(INA260_COUNT_256);
-                // set the time over which to measure the current and bus voltage
-                _ina260_e.setVoltageConversionTime(INA260_TIME_558_us);
-                _ina260_e.setCurrentConversionTime(INA260_TIME_558_us);
-            }
-
-            if (!_ina260_f.begin(INA260_LED3_ADDR)) {
-                DEBUGPORT.println("Couldn't find INA260 LED3 Chip");
-                sensorsValid = false;
-            }
-            else {
-                DEBUGPORT.println("INA260 LED3 Chip OK");
-                // set the number of samples to average
-                _ina260_f.setAveragingCount(INA260_COUNT_256);
-                // set the time over which to measure the current and bus voltage
-                _ina260_f.setVoltageConversionTime(INA260_TIME_558_us);
-                _ina260_f.setCurrentConversionTime(INA260_TIME_558_us);
+            for (int i = 0; i < N_POWER_METERS; i++) {
+                char output[256];
+                meters[i] =  new Adafruit_INA260();
+                if (!meters[i]->begin(addresses[i])) {
+                    sprintf(output, "Couldn't find INA260 Chip #%d at address 0x%x", i, addresses[i]);
+                    DEBUGPORT.println(output);
+                    sensorsValid = false;
+                }
+                else {
+                    sprintf(output, "Found INA260 Chip #%d at address 0x%x", i, addresses[i]);
+                    DEBUGPORT.println(output);
+                    // set the number of samples to average
+                    meters[i]->setAveragingCount(INA260_COUNT_128);
+                    // set the time over which to measure the current and bus voltage
+                    meters[i]->setVoltageConversionTime(INA260_TIME_558_us);
+                    meters[i]->setCurrentConversionTime(INA260_TIME_558_us);
+                }
             }
             
             
@@ -153,24 +102,13 @@ class Sensors {
             temperature = _bme.readTemperature();
             pressure = _bme.readPressure();
             humidity = _bme.readHumidity();
-            current[0] = _ina260_a.readCurrent();
-            voltage[0] = _ina260_a.readBusVoltage();
-            power[0] = _ina260_a.readPower();
-            current[1] = _ina260_b.readCurrent();
-            voltage[1] = _ina260_b.readBusVoltage();
-            power[1] = _ina260_b.readPower();
-            current[2] = _ina260_c.readCurrent();
-            voltage[2] = _ina260_c.readBusVoltage();
-            power[2] = _ina260_c.readPower();
-            current[3] = _ina260_d.readCurrent();
-            voltage[3] = _ina260_d.readBusVoltage();
-            power[3] = _ina260_d.readPower();
-            current[4] = _ina260_e.readCurrent();
-            voltage[4] = _ina260_e.readBusVoltage();
-            power[4] = _ina260_e.readPower();
-            current[5] = _ina260_f.readCurrent();
-            voltage[5] = _ina260_f.readBusVoltage();
-            power[5] = _ina260_f.readPower();
+
+            for (int i = 0; i < N_POWER_METERS; i ++) {
+                current[i] = meters[i]->readCurrent();
+                voltage[i] = meters[i]->readBusVoltage();
+                power[i] = meters[i]->readPower();
+            }
+
         }
 
         void printEnv() {
@@ -187,21 +125,16 @@ class Sensors {
         void printPower() {
             if (!sensorsValid)
                 return;
-            current[0] = _ina260_a.readCurrent();
-            voltage[0] = _ina260_a.readBusVoltage();
-            power[0] = _ina260_a.readPower();
-
-            String output = "$PWR_A," + String(current[0]) + "," + String(voltage[0]) + "," + String(power[0]);
-            UI1.println(output);
-            UI2.println(output);
-
-            current[1] = _ina260_b.readCurrent();
-            voltage[1] = _ina260_b.readBusVoltage();
-            power[1] = _ina260_b.readPower();
-
-            output = "$PWR_B," + String(current[1]) + "," + String(voltage[1]) + "," + String(power[1]);
-            UI1.println(output);
-            UI2.println(output);
+            String output;
+            UI1.println("\rn");
+            UI2.println("\rn");
+            DEBUGPORT.println("\rn");
+            for (int i = 0; i < N_POWER_METERS; i++) {
+                output = "$PWR_" + String(i) + " : " + String(voltage[i] / 1000.0) + "," + String(current[i] / 1000.0) + "," + String(power[i] / 1000.0);
+                UI1.println(output);
+                UI2.println(output);
+                DEBUGPORT.println(output);
+            }
             
         }
 };

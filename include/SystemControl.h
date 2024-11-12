@@ -214,6 +214,10 @@ class SystemControl
                             goToSleep();
                         }
 
+                        else if (cmd != NULL && strncmp_ci(cmd,PRINTPOWER,10) == 0) {
+                            _sensors.printPower();
+                        }
+
                         // Reset the buffer and print out the prompt
                         if (c == '\n')
                             in->write('\r');
@@ -399,8 +403,10 @@ class SystemControl
         if (_zerortc.getEpoch() - lastPowerOffTime > (unsigned int)cfg.getInt(CAMGUARD) && !cameraOn) {
             DEBUGPORT.println("Turning ON camera power...");
             cameraOn = true;
-            digitalWrite(CAMERA_POWER, HIGH);
-            digitalWrite(STROBE_POWER, LOW);
+            digitalWrite(V12_ENABLE, HIGH);
+            digitalWrite(LED1_ENABLE, HIGH);
+            digitalWrite(LED2_ENABLE, HIGH);
+            digitalWrite(LED3_ENABLE, HIGH);
             lastPowerOnTime = _zerortc.getEpoch();
             return true;
         }
@@ -413,8 +419,10 @@ class SystemControl
         if (_zerortc.getEpoch() - lastPowerOnTime > (unsigned int)cfg.getInt(CAMGUARD) && cameraOn) {
             DEBUGPORT.println("Turning OFF camera power...");
             cameraOn = false;
-            digitalWrite(CAMERA_POWER, LOW);
-            digitalWrite(STROBE_POWER, HIGH);
+            digitalWrite(V12_ENABLE, LOW);
+            digitalWrite(LED1_ENABLE, LOW);
+            digitalWrite(LED2_ENABLE, LOW);
+            digitalWrite(LED3_ENABLE, LOW);
             lastPowerOffTime = _zerortc.getEpoch();
             return true;
         }
@@ -464,7 +472,7 @@ class SystemControl
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "%s,%s.%03u,%0.3f,%0.3f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s,%s.%03u,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d,%d,%d",
 
             LOG_PROMPT,
             timeString,
@@ -474,12 +482,12 @@ class SystemControl
             _sensors.humidity, // in %
             _sensors.voltage[0] / 1000, // In Volts
             _sensors.voltage[1] / 1000, // In Volts
+            _sensors.voltage[2] / 1000, // In Volts
+            _sensors.voltage[6] / 1000, // In Volts
             _sensors.power[0] / 1000, // in W
             _sensors.power[1] / 1000, // in W
             _sensors.power[2] / 1000, // in W
-            _sensors.power[3] / 1000, // in W
-            _sensors.power[4] / 1000, // in W
-            _sensors.power[5] / 1000, // in W
+            _sensors.power[6] / 1000, // in W
             state,
             cameraOn,
             flashType,

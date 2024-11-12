@@ -43,9 +43,10 @@ void SERCOM1_Handler()
 }
 
 // Define power control
-#define STROBE_POWER 7
-#define CAMERA_POWER 6
-#define AUX_5V_POWER 38
+#define V12_ENABLE A2
+#define LED3_ENABLE A1
+#define LED2_ENABLE 9
+#define LED1_ENABLE 11
 
 // Define GPIOs
 #define GPIO_1_IO 42
@@ -53,8 +54,8 @@ void SERCOM1_Handler()
 #define GPIO_3_IO SWCLK
 
 // Define Triggers
-#define TRIG_4_0 A1
-#define TRIG_1_0 8
+#define TRIG_4_0 7
+#define TRIG_1_0 6
 #define TRIG_0_0 4
 
 // Define Trigger pins
@@ -129,6 +130,7 @@ void SERCOM1_Handler()
 #define PRINTEVENTS "PRINTEVENTS"
 #define CLEAREVENTS "CLEAREVENTS"
 #define GOTOSLEEP "GOTOSLEEP"
+#define PRINTPOWER "PRINTPOWER"
 
 
 #endif
