@@ -19,8 +19,8 @@
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "DMCTRL > "
-#define LOG_PROMPT "$DMCTRL"
+#define PROMPT "SPCV > "
+#define LOG_PROMPT "$SPCV"
 #define CMD_BUFFER_SIZE 128
 
 
@@ -297,6 +297,7 @@ class SystemControl
     int trigWidth;
     int lowMagStrobeDuration;
     int highMagStrobeDuration;
+    int violetStrobeDuration;
     int flashType;
     int frameRate;
   
@@ -472,7 +473,7 @@ class SystemControl
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "%s,%s.%03u,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s01,%s.%03u,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d,%d,%d",
 
             LOG_PROMPT,
             timeString,
@@ -484,10 +485,16 @@ class SystemControl
             _sensors.voltage[1] / 1000, // In Volts
             _sensors.voltage[2] / 1000, // In Volts
             _sensors.voltage[6] / 1000, // In Volts
+            _sensors.voltage[3] / 1000, // In Volts
+            _sensors.voltage[4] / 1000, // In Volts
+            _sensors.voltage[5] / 1000, // In Volts
             _sensors.power[0] / 1000, // in W
             _sensors.power[1] / 1000, // in W
             _sensors.power[2] / 1000, // in W
             _sensors.power[6] / 1000, // in W
+            _sensors.power[3] / 1000, // in W
+            _sensors.power[4] / 1000, // in W
+            _sensors.power[5] / 1000, // in W
             state,
             cameraOn,
             flashType,
@@ -701,16 +708,15 @@ class SystemControl
     void configureFlashDurations() {
         // Set global delays for ISRs
         trigWidth = cfg.getInt(TRIGWIDTH);
-        flashType = cfg.getInt(FLASHTYPE);
         if (flashType == 0) {
-            digitalWrite(FLASH_TYPE_PIN,HIGH);
             lowMagStrobeDuration = cfg.getInt(LOWMAGCOLORFLASH);
             highMagStrobeDuration = cfg.getInt(HIGHMAGCOLORFLASH);
+            violetStrobeDuration = cfg.getInt(VIOLETFLASH);
         }
         else {
-            digitalWrite(FLASH_TYPE_PIN,LOW);
             lowMagStrobeDuration = cfg.getInt(LOWMAGREDFLASH);
             highMagStrobeDuration = cfg.getInt(HIGHMAGREDFLASH);
+            violetStrobeDuration = cfg.getInt(VIOLETFLASH);
         }
     }
 

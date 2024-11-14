@@ -83,7 +83,6 @@ void configTriggers(float freq) {
     pinMode(LOW_MAG_CAM_TRIG,OUTPUT);
     pinMode(HIGH_MAG_STROBE_TRIG,OUTPUT);
     pinMode(LOW_MAG_STROBE_TRIG,OUTPUT);
-    pinMode(FLASH_TYPE_PIN,OUTPUT);
 
     Serial.println("Trigger Configuration");
 
