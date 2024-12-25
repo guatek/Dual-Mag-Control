@@ -80,12 +80,7 @@ void setup() {
     pinMode(COLOR_FLASH, OUTPUT);
     pinMode(IR_FLASH, OUTPUT);
     pinMode(VIOLET_FLASH, OUTPUT);
-
     pinMode(UVC_ENABLE, OUTPUT);
-    pinMode(COLOR_TRIG_IN, INPUT);
-    pinMode(IR_TRIG_IN, INPUT);
-    pinMode(VIOLET_TRIG_IN, INPUT);
-    pinMode(UVC_TRIG_IN, INPUT);
 
 
     digitalWrite(V12_ENABLE, LOW);

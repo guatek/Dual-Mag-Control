@@ -59,22 +59,22 @@ void SERCOM1_Handler()
 #define TRIG_0_0 4
 
 // Define strobe pins
-#define COLOR_FLASH 7
-#define IR_FLASH 6
-#define VIOLET_FLASH A0
+#define COLOR_FLASH 42
+#define IR_FLASH SWIO
+#define VIOLET_FLASH SWCLK
 
 // Inputs and UVC
-#define UVC_ENABLE PIN_ATN
-#define COLOR_TRIG_IN PIN_PA03
+#define UVC_ENABLE 4
+#define COLOR_TRIG_IN 42
 #define IR_TRIG_IN PIN_PA31
 #define VIOLET_TRIG_IN PIN_PA30
 #define UVC_TRIG_IN PIN_PA08
 
 // Define Trigger pins
-#define HIGH_MAG_CAM_TRIG GPIO_2_IO
-#define LOW_MAG_CAM_TRIG GPIO_3_IO
+#define HIGH_MAG_CAM_TRIG PIN_ATN
+#define LOW_MAG_CAM_TRIG 3
 #define HIGH_MAG_STROBE_TRIG COLOR_FLASH
-#define LOW_MAG_STROBE_TRIG IR_FLASH
+#define LOW_MAG_STROBE_TRIG VIOLET_FLASH
 
 // Define SD CARD PINS
 #define SDCARD_DETECT GPIO_1_IO
