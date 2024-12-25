@@ -56,12 +56,8 @@ void setFlashes() {
     sys.configureFlashDurations();
 }
 
-void setCTDType() {
-    sys.setCTDType();
-}
-
-void setPolling() {
-    sys.setPolling();
+void setUVC() {
+    sys.setUVC();
 }
 
 // wrapper for turning system on
@@ -85,6 +81,12 @@ void setup() {
     pinMode(IR_FLASH, OUTPUT);
     pinMode(VIOLET_FLASH, OUTPUT);
 
+    pinMode(UVC_ENABLE, OUTPUT);
+    pinMode(COLOR_TRIG_IN, INPUT);
+    pinMode(IR_TRIG_IN, INPUT);
+    pinMode(VIOLET_TRIG_IN, INPUT);
+    pinMode(UVC_TRIG_IN, INPUT);
+
 
     digitalWrite(V12_ENABLE, LOW);
     digitalWrite(LED1_ENABLE, LOW);
@@ -93,6 +95,7 @@ void setup() {
     digitalWrite(COLOR_FLASH, LOW);
     digitalWrite(IR_FLASH, LOW);
     digitalWrite(VIOLET_FLASH, LOW);
+    digitalWrite(UVC_ENABLE, LOW);
 
 
     // Setup Sd Card Pins
@@ -113,7 +116,8 @@ void setup() {
     // Add config parameters for system
     // IMPORTANT: add parameters at t he end of the list, otherwise you'll need to reflash the saved params in EEPROM before reading
     sys.cfg.addParam(LOGINT, "Time in ms between log events", "ms", 0, 100000, 250);
-    sys.cfg.addParam(POLLFREQ, "Rate of polling instruments", "Hz", 1, 50, 10, false, setPolling);
+    sys.cfg.addParam(UVCFREQ, "Rate of UVC PWM", "Hz", 60, 200, 100, false, setUVC);
+    sys.cfg.addParam(UVCDUTY, "Duty cycle of UVC PWM", "%", 0, 50, 25, false, setUVC);
     sys.cfg.addParam(DEPTHCHECKINTERVAL, "Time in seconds between depth checks for testing ascent/descent", "s", 10, 300, 30);
     sys.cfg.addParam(DEPTHTHRESHOLD, "Depth change threshold to denote ascent or descent", "mm", 500, 10000, 1000);
     sys.cfg.addParam(LOCALECHO, "When > 0, echo serial input", "", 0, 1, 1);
@@ -146,7 +150,7 @@ void setup() {
     sys.cfg.addParam(MAXDEPTH, "The maximum depth to allow powering on camera and recording", "mm", -2000, 1000000, 500000);
     sys.cfg.addParam(ECHORBR,"0 = don't print RBR data, 1 = print RBR data over ui ports", "", 0, 1, 1);
     sys.cfg.addParam(USERBRCLOCK,"0 = Use value of RTC, 1 = Sync RTC with time data from RBR CTD","",0,1,1);
-    sys.cfg.addParam(CTDTYPE, "0 = RBR, 1 = SBE39, The type of CTD data to parse","",0,0,1, false, setCTDType);
+    sys.cfg.addParam(UVCENABLE, "0 = no UVC dosing, 1 = uvc dosing per uvcfreq and uvcduty settings", "", 0, 50, 0, false, setUVC);
 
     // configure watchdog timer if enabled
    // sys.configWatchdog();
@@ -168,11 +172,13 @@ void setup() {
     // Setup flashes triggers and polling
     setFlashes();
     setTriggers();
-    setPolling();
+    setUVC();
     
 }
 
 void loop() {
+
+    Blink(10, 1);
 
     sys.update();
     sys.checkInput();
@@ -184,6 +190,5 @@ void loop() {
     int logInt = sys.cfg.getInt(LOGINT);
 
     delay(logInt);
-    Blink(10, 1);
 
 }

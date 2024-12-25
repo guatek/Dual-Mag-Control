@@ -43,24 +43,16 @@ RBRInstrument _rbr;
 // SBE39 CTD
 SBE39 _sbe39;
 
-// Static polling function for instruments
-int instrumentType = 0;
-bool pollingEnable = false;
-bool echoRBR = false;
-void pollInstruments() {
-    if (!pollingEnable)
+bool uvcEnable = false;
+int uvcDuration = 0;
+
+void doseUVC() {
+    if (!uvcEnable)
         return;
-    switch (instrumentType) {
-        case 0:
-            _rbr.readData(&RBRPORT);
-            break;
-        case 1:
-            _sbe39.readData(&RBRPORT);
-            break;
-        default:
-            _rbr.readData(&RBRPORT);
-            break;
-    }   
+    digitalWrite(UVC_ENABLE,HIGH);
+    delayMicroseconds(uvcDuration);
+    digitalWrite(UVC_ENABLE,LOW);
+
 }
 
 class SystemControl
@@ -216,6 +208,16 @@ class SystemControl
 
                         else if (cmd != NULL && strncmp_ci(cmd,PRINTPOWER,10) == 0) {
                             _sensors.printPower();
+                        }
+
+                        else if (cmd != NULL && strncmp_ci(cmd,UVCON,5) == 0) {
+                            printAllPorts("Turning ON UVC...");
+                            digitalWrite(UVC_ENABLE, HIGH);
+                        }
+
+                        else if (cmd != NULL && strncmp_ci(cmd,UVCOFF,6) == 0) {
+                            printAllPorts("Turning OFF UVC...");
+                            digitalWrite(UVC_ENABLE, LOW);
                         }
 
                         // Reset the buffer and print out the prompt
@@ -725,13 +727,12 @@ class SystemControl
         configTriggers(cfg.getInt(FRAMERATE));
     }
 
-    void setPolling() {
-        pollingEnable = true;
-        configPolling(cfg.getInt(POLLFREQ), pollInstruments);
-    }
-
-    void setCTDType() {
-        instrumentType = cfg.getInt(CTDTYPE);
+    void setUVC() {
+        float durationCalc;
+        uvcEnable = cfg.getInt(UVCENABLE);
+        durationCalc = (float)cfg.getInt(UVCDUTY) / 100.0 * 1000000.0 / cfg.getInt(UVCFREQ); 
+        uvcDuration = (int)durationCalc;
+        configUVC(cfg.getInt(UVCFREQ), doseUVC);
     }
         
 };

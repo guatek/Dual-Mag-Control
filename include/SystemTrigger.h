@@ -12,7 +12,7 @@ Adafruit_ZeroTimer highMagTimer = Adafruit_ZeroTimer(3);
 Adafruit_ZeroTimer lowMagTimer = Adafruit_ZeroTimer(5);
 
 // Sensor Polling
-Adafruit_ZeroTimer pollingTimer = Adafruit_ZeroTimer(4);
+Adafruit_ZeroTimer uvcTimer = Adafruit_ZeroTimer(4);
 
 
 //define the interrupt handlers
@@ -120,7 +120,7 @@ void configTriggers(float freq) {
 
 }
 
-void configPolling(float freq, void (*callback)()) {
+void configUVC(float freq, void (*callback)()) {
 
     uint16_t divider  = 1;
     uint16_t compare = 0;
@@ -128,15 +128,15 @@ void configPolling(float freq, void (*callback)()) {
 
     configTimer(freq, &divider, &compare, &prescaler);
 
-    pollingTimer.enable(false);
-    pollingTimer.configure(prescaler,       // prescaler
-            TC_COUNTER_SIZE_8BIT,       // bit width of timer/counter
+    uvcTimer.enable(false);
+    uvcTimer.configure(prescaler,       // prescaler
+            TC_COUNTER_SIZE_16BIT,       // bit width of timer/counter
             TC_WAVE_GENERATION_MATCH_PWM // frequency or PWM mode
             );
 
-    pollingTimer.setCompare(0, compare);
-    pollingTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, callback);
-    pollingTimer.enable(true);
+    uvcTimer.setCompare(0, compare);
+    uvcTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, callback);
+    uvcTimer.enable(true);
 
 }
 

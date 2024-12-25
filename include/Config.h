@@ -63,6 +63,13 @@ void SERCOM1_Handler()
 #define IR_FLASH 6
 #define VIOLET_FLASH A0
 
+// Inputs and UVC
+#define UVC_ENABLE PIN_ATN
+#define COLOR_TRIG_IN PIN_PA03
+#define IR_TRIG_IN PIN_PA31
+#define VIOLET_TRIG_IN PIN_PA30
+#define UVC_TRIG_IN PIN_PA08
+
 // Define Trigger pins
 #define HIGH_MAG_CAM_TRIG GPIO_2_IO
 #define LOW_MAG_CAM_TRIG GPIO_3_IO
@@ -80,9 +87,9 @@ void SERCOM1_Handler()
 #define HWPORT2 Serial2
 #define HWPORT3 Serial3
 
-#define UI1 HWPORT1
-#define UI2 HWPORT2
-#define JETSONPORT HWPORT0
+#define UI1 HWPORT0
+#define UI2 HWPORT1
+#define JETSONPORT HWPORT2
 #define RBRPORT HWPORT3
 
 // Define Config Settings
@@ -121,6 +128,9 @@ void SERCOM1_Handler()
 #define ECHORBR "ECHORBR"
 #define USERBRCLOCK "USERBRCLOCK"
 #define CTDTYPE "CTDTYPE"
+#define UVCENABLE "UVCENABLE"
+#define UVCFREQ "UVCFREQ"
+#define UVCDUTY "UVCDUTY"
 
 // Define Commands
 #define CFG "CFG"
@@ -136,6 +146,8 @@ void SERCOM1_Handler()
 #define CLEAREVENTS "CLEAREVENTS"
 #define GOTOSLEEP "GOTOSLEEP"
 #define PRINTPOWER "PRINTPOWER"
+#define UVCON "UVCON"
+#define UVCOFF "UVCOFF"
 
 
 #endif
