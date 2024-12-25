@@ -81,7 +81,7 @@ void setup() {
     pinMode(IR_FLASH, OUTPUT);
     pinMode(VIOLET_FLASH, OUTPUT);
 
-    pinMode(UVC_ENABLE, OUTPUT);
+    pinMode(UVC_ENABLE, INPUT);
     pinMode(COLOR_TRIG_IN, INPUT);
     pinMode(IR_TRIG_IN, INPUT);
     pinMode(VIOLET_TRIG_IN, INPUT);
@@ -95,7 +95,6 @@ void setup() {
     digitalWrite(COLOR_FLASH, LOW);
     digitalWrite(IR_FLASH, LOW);
     digitalWrite(VIOLET_FLASH, LOW);
-    digitalWrite(UVC_ENABLE, LOW);
 
 
     // Setup Sd Card Pins
@@ -141,7 +140,7 @@ void setup() {
     sys.cfg.addParam(CHECKHOURLY, "0 = check every minute, 1 = check every hour", "", 0, 1, 0);
     sys.cfg.addParam(STARTUPTIME, "Time in seconds before performing any system checks", "s", 0, 60, 10);
     sys.cfg.addParam(WATCHDOG, "0 = no watchdog, 1 = hardware watchdog timer with 8 sec timeout","", 0, 1, 0);
-    sys.cfg.addParam(CAMGUARD,"Time guard between power ON/OFF events in seconds", "s", 10, 120, 30);
+    sys.cfg.addParam(CAMGUARD,"Time guard between power ON/OFF events in seconds", "s", 0, 120, 30);
     sys.cfg.addParam(TEMPLIMIT, "Temerature in C where controller will shutdown and power off camera","C", 0, 80, 55);
     sys.cfg.addParam(HUMLIMIT, "Humidity in % where controller will shutdown and power off camera","%", 0, 100, 60);
     sys.cfg.addParam(MAXSHUTDOWNTIME, "Max time in seconds we wait before cutting power to camera", "s", 15, 600, 60);
@@ -173,6 +172,9 @@ void setup() {
     setFlashes();
     setTriggers();
     setUVC();
+
+    // Turn on power supplies by default
+    sys.turnOnCamera();
     
 }
 

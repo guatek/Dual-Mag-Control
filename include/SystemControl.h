@@ -19,8 +19,8 @@
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "SPCV > "
-#define LOG_PROMPT "$SPCV"
+#define PROMPT "SPCVS > "
+#define LOG_PROMPT "$SPCVS"
 #define CMD_BUFFER_SIZE 128
 
 
