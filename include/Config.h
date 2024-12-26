@@ -65,10 +65,6 @@ void SERCOM1_Handler()
 
 // Inputs and UVC
 #define UVC_ENABLE 4
-#define COLOR_TRIG_IN 42
-#define IR_TRIG_IN PIN_PA31
-#define VIOLET_TRIG_IN PIN_PA30
-#define UVC_TRIG_IN PIN_PA08
 
 // Define Trigger pins
 #define COLOR_CAM_TRIG PIN_ATN
