@@ -523,8 +523,8 @@ class SystemControl
         if (UI1.available() > 0) {
             readInput(&UI1);
         }
-        if (JETSONPORT.available() > 0) {
-            readInput(&JETSONPORT);
+        if (UI2.available() > 0) {
+            readInput(&UI2);
         }
 
     }
