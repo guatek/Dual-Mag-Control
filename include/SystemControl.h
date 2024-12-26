@@ -403,35 +403,35 @@ class SystemControl
     }
 
     bool turnOnCamera() {
-        if (_zerortc.getEpoch() - lastPowerOffTime > (unsigned int)cfg.getInt(CAMGUARD) && !cameraOn) {
-            DEBUGPORT.println("Turning ON camera power...");
-            cameraOn = true;
-            digitalWrite(V12_ENABLE, HIGH);
-            digitalWrite(LED1_ENABLE, HIGH);
-            digitalWrite(LED2_ENABLE, HIGH);
-            digitalWrite(LED3_ENABLE, HIGH);
-            lastPowerOnTime = _zerortc.getEpoch();
-            return true;
-        }
-        else {
-            return false;
-        }
+        //if (_zerortc.getEpoch() - lastPowerOffTime > (unsigned int)cfg.getInt(CAMGUARD) && !cameraOn) {
+        DEBUGPORT.println("Turning ON camera power...");
+        cameraOn = true;
+        digitalWrite(V12_ENABLE, HIGH);
+        digitalWrite(LED1_ENABLE, HIGH);
+        digitalWrite(LED2_ENABLE, HIGH);
+        digitalWrite(LED3_ENABLE, HIGH);
+        lastPowerOnTime = _zerortc.getEpoch();
+        return true;
+        //}
+        //else {
+        //    return false;
+        //}
     }
 
     bool turnOffCamera() {
-        if (_zerortc.getEpoch() - lastPowerOnTime > (unsigned int)cfg.getInt(CAMGUARD) && cameraOn) {
-            DEBUGPORT.println("Turning OFF camera power...");
-            cameraOn = false;
-            digitalWrite(V12_ENABLE, LOW);
-            digitalWrite(LED1_ENABLE, LOW);
-            digitalWrite(LED2_ENABLE, LOW);
-            digitalWrite(LED3_ENABLE, LOW);
-            lastPowerOffTime = _zerortc.getEpoch();
-            return true;
-        }
-        else {
-            return false;
-        }
+        //if (_zerortc.getEpoch() - lastPowerOnTime > (unsigned int)cfg.getInt(CAMGUARD) && cameraOn) {
+        DEBUGPORT.println("Turning OFF camera power...");
+        cameraOn = false;
+        digitalWrite(V12_ENABLE, LOW);
+        digitalWrite(LED1_ENABLE, LOW);
+        digitalWrite(LED2_ENABLE, LOW);
+        digitalWrite(LED3_ENABLE, LOW);
+        lastPowerOffTime = _zerortc.getEpoch();
+        return true;
+        //}
+        //else {
+        //    return false;
+        //}
     }
 
     void getTimeString(char * timeString) {
