@@ -11,7 +11,7 @@ SystemControl sys;
 // High Mag Trigger Callback
 void HighMagCallback()
 {
-    digitalWrite(HIGH_MAG_CAM_TRIG,HIGH);
+    /*digitalWrite(HIGH_MAG_CAM_TRIG,HIGH);
     delayMicroseconds(sys.trigWidth/2);
     if (sys.highMagStrobeDuration > 0) {
         digitalWrite(HIGH_MAG_STROBE_TRIG,HIGH);
@@ -27,13 +27,15 @@ void HighMagCallback()
     }
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(HIGH_MAG_CAM_TRIG,LOW);
+    */
+   return;
     
 }
 
 // Low Mag Trigger Callback
 void LowMagCallback()
 {
-    digitalWrite(LOW_MAG_CAM_TRIG,HIGH);
+    /*digitalWrite(LOW_MAG_CAM_TRIG,HIGH);
     delayMicroseconds(sys.trigWidth/2);
     if (sys.lowMagStrobeDuration > 0) {
         digitalWrite(LOW_MAG_STROBE_TRIG,HIGH);
@@ -43,7 +45,7 @@ void LowMagCallback()
     }
     delayMicroseconds(sys.trigWidth/2);
     digitalWrite(LOW_MAG_CAM_TRIG,LOW);
-    
+    */
    return;
 }
 
@@ -77,9 +79,9 @@ void setup() {
     pinMode(LED1_ENABLE, OUTPUT);
     pinMode(LED2_ENABLE, OUTPUT);
     pinMode(LED3_ENABLE, OUTPUT);
-    pinMode(COLOR_FLASH, OUTPUT);
-    pinMode(IR_FLASH, OUTPUT);
-    pinMode(VIOLET_FLASH, OUTPUT);
+    pinMode(COLOR_FLASH, INPUT);
+    pinMode(IR_FLASH, INPUT);
+    pinMode(VIOLET_FLASH, INPUT);
 
     pinMode(UVC_ENABLE, INPUT);
     pinMode(COLOR_TRIG_IN, INPUT);
@@ -92,9 +94,6 @@ void setup() {
     digitalWrite(LED1_ENABLE, LOW);
     digitalWrite(LED2_ENABLE, LOW);
     digitalWrite(LED3_ENABLE, LOW);
-    digitalWrite(COLOR_FLASH, LOW);
-    digitalWrite(IR_FLASH, LOW);
-    digitalWrite(VIOLET_FLASH, LOW);
 
 
     // Setup Sd Card Pins

@@ -122,7 +122,7 @@ void configTriggers(float freq) {
 
 void configUVC(float freq, void (*callback)()) {
 
-    uint16_t divider  = 1;
+    /*uint16_t divider  = 1;
     uint16_t compare = 0;
     tc_clock_prescaler prescaler = TC_CLOCK_PRESCALER_DIV1;
 
@@ -137,7 +137,7 @@ void configUVC(float freq, void (*callback)()) {
     uvcTimer.setCompare(0, compare);
     uvcTimer.setCallback(true, TC_CALLBACK_CC_CHANNEL0, callback);
     uvcTimer.enable(true);
-
+    */
 }
 
 #endif
