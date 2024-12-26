@@ -102,7 +102,7 @@ void setup() {
     // Start the debug port
     DEBUGPORT.begin(115200);
 
-    delay(2000);
+    delay(4000);
 
     // Wait until serial port is opened
     //while (!Serial) { delay(10); }

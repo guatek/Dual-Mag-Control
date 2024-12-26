@@ -407,9 +407,13 @@ class SystemControl
         DEBUGPORT.println("Turning ON camera power...");
         cameraOn = true;
         digitalWrite(V12_ENABLE, HIGH);
+        delay(1000);
         digitalWrite(LED1_ENABLE, HIGH);
+        delay(1000);
         digitalWrite(LED2_ENABLE, HIGH);
+        delay(1000);
         digitalWrite(LED3_ENABLE, HIGH);
+        delay(1000);
         lastPowerOnTime = _zerortc.getEpoch();
         return true;
         //}
