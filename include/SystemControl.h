@@ -19,8 +19,8 @@
 #include "Utils.h"
 
 #define CMD_CHAR '!'
-#define PROMPT "SPCV > "
-#define LOG_PROMPT "$SPCV"
+#define PROMPT "SPCVC > "
+#define LOG_PROMPT "$SPCVC"
 #define CMD_BUFFER_SIZE 128
 
 
@@ -82,6 +82,8 @@ class SystemControl
     unsigned long voltageTimer;
 
     int lastFlashType, lastLowMagDuration, lastHighMagDuration, lastFrameRate;
+    int lastColorDuration, lastIRDuration, lastVioletDuration;
+
 
     MovingAverage<float> avgVoltage;
     MovingAverage<float> avgTemp;
@@ -299,6 +301,8 @@ class SystemControl
     int trigWidth;
     int lowMagStrobeDuration;
     int highMagStrobeDuration;
+    int colorStrobeDuration;
+    int irStrobeDuration;
     int violetStrobeDuration;
     int flashType;
     int frameRate;
@@ -364,29 +368,18 @@ class SystemControl
 
     void storeLastFlashConfig() {
         // Set last config in case we call end event before start event
-        lastFlashType = cfg.getInt(FLASHTYPE);
         lastFrameRate = cfg.getInt(FRAMERATE);
-        if (lastFlashType == 1) {        
-            lastLowMagDuration = cfg.getInt(LOWMAGREDFLASH);
-            lastHighMagDuration = cfg.getInt(HIGHMAGREDFLASH);
-        }
-        else {
-            lastLowMagDuration = cfg.getInt(LOWMAGCOLORFLASH);
-            lastHighMagDuration = cfg.getInt(HIGHMAGCOLORFLASH);
-        }
+        lastColorDuration = cfg.getInt(COLORFLASH);
+        lastIRDuration = cfg.getInt(IRFLASH);
+        lastVioletDuration = cfg.getInt(VIOLETFLASH);
+
     }
 
     void restoreLastFlashConfig() {
-        cfg.set(FLASHTYPE, lastFlashType);
         cfg.set(FRAMERATE, lastFrameRate);
-        if (lastFlashType == 1) {        
-            cfg.set(LOWMAGREDFLASH, lastLowMagDuration);
-            cfg.set(HIGHMAGREDFLASH, lastHighMagDuration);
-        }
-        else {
-            cfg.set(LOWMAGCOLORFLASH, lastLowMagDuration);
-            cfg.set(HIGHMAGCOLORFLASH, lastHighMagDuration);
-        }
+        cfg.set(COLORFLASH, lastColorDuration);
+        cfg.set(IRFLASH, lastIRDuration);
+        cfg.set(VIOLETFLASH, lastVioletDuration);
     }
 
     void loadScheduler() {
@@ -674,16 +667,10 @@ class SystemControl
         if (result == 1 && !pendingPowerOn && !cameraOn) {
             // Store the current settings and set new ones
             storeLastFlashConfig();
-            cfg.set(FLASHTYPE, sch->flashType);
             cfg.set(FRAMERATE, sch->frameRate);
-            if (sch->flashType == 1) {
-                cfg.set(LOWMAGREDFLASH, sch->lowMagDuration);
-                cfg.set(HIGHMAGREDFLASH, sch->highMagDuration);
-            }
-            else {
-                cfg.set(LOWMAGCOLORFLASH, sch->lowMagDuration);
-                cfg.set(HIGHMAGCOLORFLASH, sch->highMagDuration);
-            }
+            cfg.set(COLORFLASH, sch->colorFlash);
+            cfg.set(IRFLASH, sch->irFlash);
+            cfg.set(VIOLETFLASH, sch->violetFlash);
             configureFlashDurations();
             setTriggers();
             pendingPowerOn = true;
@@ -710,16 +697,9 @@ class SystemControl
     void configureFlashDurations() {
         // Set global delays for ISRs
         trigWidth = cfg.getInt(TRIGWIDTH);
-        if (flashType == 0) {
-            lowMagStrobeDuration = cfg.getInt(LOWMAGCOLORFLASH);
-            highMagStrobeDuration = cfg.getInt(HIGHMAGCOLORFLASH);
-            violetStrobeDuration = cfg.getInt(VIOLETFLASH);
-        }
-        else {
-            lowMagStrobeDuration = cfg.getInt(LOWMAGREDFLASH);
-            highMagStrobeDuration = cfg.getInt(HIGHMAGREDFLASH);
-            violetStrobeDuration = cfg.getInt(VIOLETFLASH);
-        }
+        colorStrobeDuration = cfg.getInt(COLORFLASH);
+        irStrobeDuration = cfg.getInt(IRFLASH);
+        violetStrobeDuration = cfg.getInt(VIOLETFLASH);
     }
 
     void setTriggers() {

@@ -16,19 +16,19 @@ class TimeEvent {
     public:
     int uid, hour, min, sec, duration;
     int enabled;
-    int flashType, lowMag, highMag, frameRate;
+    int colorFlash, irFlash, violetFlash, frameRate;
     uint32_t startTime;
     bool running, completed;
 
-    TimeEvent(int uid, int hours, int min, int sec, int duration, int flashType, int lowMag, int highMag, int frameRate) {
+    TimeEvent(int uid, int hours, int min, int sec, int duration, int colorFlash, int irFlash, int violetFlash, int frameRate) {
         this->uid = uid;
         this->hour = hours;
         this->min = min;
         this->sec = sec;
         this->duration = duration;
-        this->flashType = flashType;
-        this->lowMag = lowMag;
-        this->highMag = highMag;
+        this->colorFlash = colorFlash;
+        this->irFlash = irFlash;
+        this->violetFlash = violetFlash;
         this->frameRate = frameRate;
         enabled = 1;
         running = false;
@@ -39,7 +39,7 @@ class TimeEvent {
     int sizeOnFlash() {
         int size = 0;
         size += sizeof(hour) + sizeof(min) + sizeof(sec) + sizeof(duration);
-        size += sizeof(flashType) + sizeof(lowMag) + sizeof(highMag) + sizeof(frameRate);
+        size += sizeof(colorFlash) + sizeof(irFlash) + sizeof(violetFlash) + sizeof(frameRate);
         return size;
     }
 
@@ -55,12 +55,12 @@ class TimeEvent {
             add += sizeof(sec);
             _f->writeBytes(add, (void*)&duration, (uint16_t)sizeof(duration));
             add += sizeof(duration);
-            _f->writeBytes(add, (void*)&flashType, (uint16_t)sizeof(flashType));
-            add += sizeof(flashType);
-            _f->writeBytes(add, (void*)&lowMag, (uint16_t)sizeof(lowMag));
-            add += sizeof(lowMag);
-            _f->writeBytes(add, (void*)&highMag, (uint16_t)sizeof(highMag));
-            add += sizeof(highMag);
+            _f->writeBytes(add, (void*)&colorFlash, (uint16_t)sizeof(colorFlash));
+            add += sizeof(colorFlash);
+            _f->writeBytes(add, (void*)&irFlash, (uint16_t)sizeof(irFlash));
+            add += sizeof(irFlash);
+            _f->writeBytes(add, (void*)&violetFlash, (uint16_t)sizeof(violetFlash));
+            add += sizeof(violetFlash);
             _f->writeBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
             add += sizeof(frameRate);
             _f->writeBytes(add, (void*)&enabled, (uint16_t)sizeof(enabled));
@@ -79,12 +79,12 @@ class TimeEvent {
             add += sizeof(sec);
             _f->readBytes(add, (void*)&duration, (uint16_t)sizeof(duration));
             add += sizeof(duration);
-            _f->readBytes(add, (void*)&flashType, (uint16_t)sizeof(flashType));
-            add += sizeof(flashType);
-            _f->readBytes(add, (void*)&lowMag, (uint16_t)sizeof(lowMag));
-            add += sizeof(lowMag);
-            _f->readBytes(add, (void*)&highMag, (uint16_t)sizeof(highMag));
-            add += sizeof(highMag);
+            _f->readBytes(add, (void*)&colorFlash, (uint16_t)sizeof(colorFlash));
+            add += sizeof(colorFlash);
+            _f->readBytes(add, (void*)&irFlash, (uint16_t)sizeof(irFlash));
+            add += sizeof(irFlash);
+            _f->readBytes(add, (void*)&violetFlash, (uint16_t)sizeof(violetFlash));
+            add += sizeof(violetFlash);
             _f->readBytes(add, (void*)&frameRate, (uint16_t)sizeof(frameRate));
             add += sizeof(frameRate);
             _f->writeBytes(add, (void*)&enabled, (uint16_t)sizeof(enabled));
@@ -123,16 +123,14 @@ class TimeEvent {
         ui->print("Duration: ");
         ui->print(duration);
         ui->println(" minutes");
-        ui->print("Flash Type: ");
-        if (flashType)
-            ui->println("Far Red");
-        else
-            ui->println("White");
-        ui->print("Low Mag Duration: ");
-        ui->print(lowMag);
+        ui->print("Color Duration: ");
+        ui->print(colorFlash);
         ui->println(" us");
-        ui->print("high Mag Duration: ");
-        ui->print(highMag);
+        ui->print("IR Duration: ");
+        ui->print(irFlash);
+        ui->println(" us");
+        ui->print("Violet Duration: ");
+        ui->print(violetFlash);
         ui->println(" us");
         ui->print("Frame Rate: ");
         ui->print(frameRate);
@@ -179,7 +177,7 @@ class Scheduler {
 
     public:
 
-    int flashType, lowMagDuration, highMagDuration, frameRate;
+    int colorFlash, irFlash, violetFlash, frameRate;
     
     Scheduler(int uid, SPIFlash * _f) {
         this->baseUid = uid;
@@ -212,54 +210,36 @@ class Scheduler {
     }
 
     bool timeEventUI(Stream * ui, SystemConfig * cfg, int cmdTimeout) {
-        int flashType, lowMagDuration, highMagDuration, frameRate; 
+        int colorFlashTmp, irFlashTmp, violetFlashTmp, frameRateTmp; 
         bool result;
         char exitCode = 27;
         ui->println("Create New Time Event:");
         if (confirm(ui, "Use custom camera config? [y,N]: ", cmdTimeout)) {
             
             
-            // Flash Type
-            result = cfg->readIntFromUI(ui, FLASHTYPE, &flashType, exitCode, cmdTimeout);
+            // Flash durations
+            result = cfg->readIntFromUI(ui, COLORFLASH, &colorFlashTmp, exitCode, cmdTimeout);
             if (!result)
                 return false;
 
-            // Flash Duration
-            if (flashType == 0) {
-                // Color
-                result = cfg->readIntFromUI(ui, LOWMAGCOLORFLASH, &lowMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-                result = cfg->readIntFromUI(ui, HIGHMAGCOLORFLASH, &highMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-            }
-            else {
-                // Far Red
-                result = cfg->readIntFromUI(ui, LOWMAGREDFLASH, &lowMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-                result = cfg->readIntFromUI(ui, HIGHMAGREDFLASH, &highMagDuration, exitCode, cmdTimeout);
-                if (!result) 
-                    return false;
-            }
+            result = cfg->readIntFromUI(ui, IRFLASH, &irFlashTmp, exitCode, cmdTimeout);
+            if (!result)
+                return false;
+
+            result = cfg->readIntFromUI(ui, VIOLETFLASH, &violetFlashTmp, exitCode, cmdTimeout);
+            if (!result)
+                return false;
             
             // Frame rate
-            result = cfg->readIntFromUI(ui, FRAMERATE, &frameRate, exitCode, cmdTimeout);
+            result = cfg->readIntFromUI(ui, FRAMERATE, &frameRateTmp, exitCode, cmdTimeout);
             if (!result)
                 return false;
 
         }
         else {
-            flashType = cfg->getInt(FLASHTYPE);
-            if (flashType == 0) {
-                lowMagDuration = cfg->getInt(LOWMAGCOLORFLASH);
-                highMagDuration = cfg->getInt(HIGHMAGCOLORFLASH);
-            }
-            else {
-                lowMagDuration = cfg->getInt(LOWMAGREDFLASH);
-                highMagDuration = cfg->getInt(HIGHMAGREDFLASH);
-            }
+            colorFlash = cfg->getInt(COLORFLASH);
+            irFlash = cfg->getInt(IRFLASH);
+            violetFlash = cfg->getInt(VIOLETFLASH);
             frameRate = cfg->getInt(FRAMERATE);
         }
 
@@ -288,7 +268,7 @@ class Scheduler {
 
         // If we got here we have a valid set of event params so we should create one.
         ui->println("Creating Event:");
-        addTimeEvent(ui, hour, minute, second, duration, flashType, lowMagDuration, highMagDuration, frameRate);
+        addTimeEvent(ui, hour, minute, second, duration, colorFlashTmp, irFlashTmp, violetFlashTmp, frameRateTmp);
         
         return true;
 
@@ -345,9 +325,9 @@ class Scheduler {
         for (int i = 0; i < nTimeEvents; i++) {
             if (timeEvents[i]->checkStart(rtc)) {
                 // store current camera config and set from event
-                flashType = timeEvents[i]->flashType;
-                lowMagDuration = timeEvents[i]->lowMag;
-                highMagDuration = timeEvents[i]->highMag;
+                colorFlash = timeEvents[i]->colorFlash;
+                irFlash = timeEvents[i]->irFlash;
+                violetFlash = timeEvents[i]->violetFlash;
                 frameRate = timeEvents[i]->frameRate;
                 return 1;
             }
