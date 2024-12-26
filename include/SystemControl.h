@@ -565,6 +565,10 @@ class SystemControl
                 UI1.println(result);
            }
         }
+        if (JETSONPORT.available() > 0) {
+           char * result = bufferInput(&UI2);
+           readInput(&JETSONPORT);
+        }
 
     }
 
