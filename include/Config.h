@@ -59,7 +59,7 @@ void SERCOM1_Handler()
 #define TRIG_0_0 4
 
 // Define strobe pins
-#define COLOR_FLASH 42
+#define COLOR_FLASH 7
 #define IR_FLASH SWIO
 #define VIOLET_FLASH SWCLK
 
