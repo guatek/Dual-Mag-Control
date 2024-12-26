@@ -22,6 +22,7 @@
 #define PROMPT "SPCVC > "
 #define LOG_PROMPT "$SPCVC"
 #define CMD_BUFFER_SIZE 128
+#define SERIAL_INPUT_BUFFER_SIZE 512
 
 
 
@@ -92,6 +93,39 @@ class SystemControl
 
     Scheduler * sch;
     
+    // Serial input from strobe
+    int serialBufferIndex = 0;
+    char serialInputBuffer[SERIAL_INPUT_BUFFER_SIZE];
+    char serialOutputBuffer[SERIAL_INPUT_BUFFER_SIZE];
+
+    char * bufferInput(Stream *in) {
+        while (in->available() > 0) {
+            char c = in->read(); 
+            if (c == '\r') {
+                if (serialBufferIndex >= SERIAL_INPUT_BUFFER_SIZE) {
+                    serialBufferIndex = SERIAL_INPUT_BUFFER_SIZE - 1;
+                }
+                memcpy(serialOutputBuffer, serialInputBuffer, serialBufferIndex);
+                serialOutputBuffer[serialBufferIndex] = 0;
+                serialBufferIndex = 0;
+                return serialOutputBuffer;
+            }
+            else {
+                if (serialBufferIndex < SERIAL_INPUT_BUFFER_SIZE) {
+                    serialInputBuffer[serialBufferIndex++] = c;
+                }
+                else {
+                    // overflow
+                    serialBufferIndex = 0;
+                    serialInputBuffer[serialBufferIndex++] = c;
+                }
+            }
+
+        }
+        return NULL;
+    }
+
+
     void readInput(Stream *in) {
       
         if (in != NULL && in->available() > 0) {
@@ -526,15 +560,18 @@ class SystemControl
             readInput(&UI1);
         }
         if (UI2.available() > 0) {
-            _rbr.disableEcho();
-            readInput(&UI2);
+           char * result = bufferInput(&UI2);
+           if (result != NULL) {
+                UI1.println(result);
+           }
         }
-        _rbr.setEchoData(cfg.getInt(ECHORBR) == 1);
+
     }
 
     void printAllPorts(const char output[]) {
         UI1.println(output);
-        UI2.println(output);
+        // Don't print commands to strobe
+        //UI2.println(output);
         DEBUGPORT.println(output);
     }
 
