@@ -475,11 +475,9 @@ class SystemControl
 
         // The system log string, note this requires enabling printf_float build
         // option work show any output for floating point values
-        sprintf(output, "%s01,%s.%03u,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%d,%d,%d,%d,%d,%d",
+        sprintf(output, "%s01,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f",
 
             LOG_PROMPT,
-            timeString,
-            ((unsigned int) millis()) % 1000,
             _sensors.temperature, // In C
             _sensors.pressure / 1000, // in kPa
             _sensors.humidity, // in %
@@ -496,13 +494,7 @@ class SystemControl
             _sensors.power[6] / 1000, // in W
             _sensors.power[3] / 1000, // in W
             _sensors.power[4] / 1000, // in W
-            _sensors.power[5] / 1000, // in W
-            state,
-            cameraOn,
-            flashType,
-            lowMagStrobeDuration,
-            highMagStrobeDuration,
-            frameRate
+            _sensors.power[5] / 1000 // in W
             
         );
 
@@ -529,14 +521,12 @@ class SystemControl
             readInput(&DEBUGPORT);
         }
         if (UI1.available() > 0) {
-            _rbr.disableEcho();
             readInput(&UI1);
         }
-        if (UI2.available() > 0) {
-            _rbr.disableEcho();
-            readInput(&UI2);
+        if (JETSONPORT.available() > 0) {
+            readInput(&JETSONPORT);
         }
-        _rbr.setEchoData(cfg.getInt(ECHORBR) == 1);
+
     }
 
     void printAllPorts(const char output[]) {
