@@ -51,15 +51,15 @@ void LowMagCallback()
 
 // Wrapper for updaing timers and flashes from callback functions
 void setTriggers() {
-    sys.setTriggers();
+    //sys.setTriggers();
 }
 
 void setFlashes() {
-    sys.configureFlashDurations();
+    //sys.configureFlashDurations();
 }
 
 void setUVC() {
-    sys.setUVC();
+    //sys.setUVC();
 }
 
 // wrapper for turning system on
@@ -168,9 +168,9 @@ void setup() {
     sys.loadScheduler();
 
     // Setup flashes triggers and polling
-    setFlashes();
-    setTriggers();
-    setUVC();
+    //setFlashes();
+    //setTriggers();
+    //setUVC();
 
     // Turn on power supplies by default
     sys.turnOnCamera();
